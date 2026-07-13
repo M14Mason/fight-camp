@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1A2238">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fight Camp">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<title>Fight Camp · Aug 9</title>
+<style>
+  :root { --navy:#1A2238; --red:#C8102E; --canvas:#F5F1E8; --card:#FFFDF7; --line:#D8D0BE; --muted:#6B7280; --gold:#B8860B; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; background:var(--canvas); color:var(--navy); font-family:'Helvetica Neue',Arial,sans-serif; overflow-x:hidden; padding-bottom:env(safe-area-inset-bottom); }
+  header { background:var(--navy); color:var(--canvas); padding:calc(12px + env(safe-area-inset-top)) 16px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; position:sticky; top:0; z-index:20; }
+  h1 { font-family:'Arial Black',sans-serif; font-size:20px; letter-spacing:1px; text-transform:uppercase; margin:0; }
+  .count { text-align:center; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); border-radius:12px; padding:7px 14px; min-width:78px; }
+  .count b { font-size:28px; color:#fff; font-family:Georgia,serif; line-height:1; display:block; }
+  .count span { font-size:9px; letter-spacing:1.2px; display:block; color:#B9B3A4; margin-top:3px; }
+  .count .fightbar { height:3px; background:rgba(255,255,255,.15); border-radius:2px; margin-top:6px; overflow:hidden; }
+  .count .fightbar div { height:100%; background:var(--red); }
+  .round { background:var(--red); padding:3px 10px; font-weight:900; letter-spacing:1.5px; font-size:10px; border-radius:3px; }
+  nav { display:flex; border-bottom:3px solid var(--navy); background:#EDE7DA; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; position:sticky; top:calc(60px + env(safe-area-inset-top)); z-index:19; }
+  nav::-webkit-scrollbar{display:none;}
+  nav button { padding:14px 16px; cursor:pointer; font-weight:800; font-size:12px; letter-spacing:1.2px; text-transform:uppercase; background:transparent; color:var(--navy); border:none; white-space:nowrap; min-height:44px; }
+  nav button.active { background:var(--navy); color:var(--canvas); }
+  main { padding:14px; padding-bottom:calc(24px + env(safe-area-inset-bottom)); max-width:760px; margin:0 auto; width:100%; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:16px; margin-bottom:12px; max-width:100%; overflow-x:auto; }
+  .label { font-weight:900; letter-spacing:1.5px; font-size:12px; margin-bottom:10px; color:var(--red); }
+  .btn { background:var(--red); color:#fff; border:none; border-radius:6px; padding:13px 18px; font-weight:800; letter-spacing:.5px; cursor:pointer; text-transform:uppercase; font-size:13px; min-height:44px; touch-action:manipulation; }
+  .btn.ghost { background:transparent; color:var(--navy); border:2px solid var(--navy); }
+  .btn.sm { padding:9px 14px; font-size:11px; min-height:38px; }
+  .item { display:flex; gap:12px; align-items:flex-start; padding:11px 4px; border-bottom:1px solid #EDE7DA; cursor:pointer; font-size:15px; line-height:1.5; min-height:44px; touch-action:manipulation; }
+  .item input { width:22px; height:22px; accent-color:var(--red); margin-top:1px; flex-shrink:0; }
+  .item.done span { text-decoration:line-through; opacity:.5; }
+  .slot { font-weight:900; font-size:12px; letter-spacing:1px; background:#EDE7DA; padding:5px 10px; border-radius:4px; display:inline-block; margin:14px 0 4px; }
+  .warn { border-left:6px solid var(--red); font-weight:700; color:var(--red); }
+  input,select { padding:12px 10px; border:2px solid var(--navy); border-radius:6px; background:var(--card); font-size:16px; width:100%; min-height:44px; }
+  input[type=range]{ padding:0; border:none; min-height:32px; accent-color:var(--red); }
+  .muted { color:var(--muted); font-size:13px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed; }
+  td,th { padding:8px 4px; border-bottom:1px solid #EDE7DA; text-align:left; vertical-align:top; word-break:break-word; }
+  th { width:52px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { border:2px solid var(--navy); background:var(--card); border-radius:6px; padding:10px 12px; font-weight:700; font-size:13px; cursor:pointer; user-select:none; touch-action:manipulation; min-height:44px; }
+  .chip:active { background:var(--navy); color:#fff; }
+  .chip.on { background:var(--navy); color:#fff; }
+  .rings { display:flex; justify-content:space-around; flex-wrap:wrap; gap:10px; }
+  .bars { display:flex; align-items:flex-end; gap:5px; height:110px; margin-top:8px; padding-bottom:20px; }
+  .bar { flex:1; background:#E8E2D6; position:relative; display:flex; flex-direction:column; justify-content:flex-end; min-width:0; }
+  .bar .fill { background:var(--red); width:100%; transition:height .4s; }
+  .bar .lbl { position:absolute; bottom:-18px; width:100%; text-align:center; font-size:9px; color:var(--muted); left:0; }
+  .meal-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #EDE7DA; font-size:14px; gap:8px; min-height:44px; }
+  .del { color:var(--red); cursor:pointer; font-weight:900; padding:8px; min-width:32px; text-align:center; }
+  .streaks { display:flex; gap:10px; flex-wrap:wrap; }
+  .streak-pill { flex:1; min-width:130px; background:var(--navy); color:#fff; border-radius:8px; padding:12px 14px; text-align:center; }
+  .streak-pill b { font-size:26px; font-family:Georgia,serif; display:block; }
+  .streak-pill span { font-size:10px; letter-spacing:1px; color:#B9B3A4; text-transform:uppercase; }
+  .streak-pill.fire b::after { content:" 🔥"; }
+  .offline-banner { background:var(--gold); color:#fff; text-align:center; padding:8px; font-size:12px; font-weight:700; display:none; }
+  .offline-banner.show { display:block; }
+  .wo-block { margin-top:14px; }
+  .wo-block .bh { font-weight:900; letter-spacing:1px; font-size:11px; color:var(--muted); text-transform:uppercase; border-bottom:2px solid var(--navy); padding-bottom:4px; margin-bottom:4px; display:flex; justify-content:space-between; }
+  .wo-ex { border-bottom:1px solid #EDE7DA; }
+  .wo-ex .exhead { display:flex; justify-content:space-between; align-items:center; padding:10px 0; cursor:pointer; min-height:44px; gap:8px; touch-action:manipulation; }
+  .wo-ex .caret { color:var(--red); font-weight:900; transition:transform .25s; flex-shrink:0; }
+  .wo-ex.open .caret { transform:rotate(90deg); }
+  .exdrop { max-height:0; overflow:hidden; transition:max-height .35s ease; }
+  .wo-ex.open .exdrop { max-height:420px; }
+  .exdrop-inner { display:flex; gap:14px; align-items:flex-start; padding:4px 0 14px; flex-wrap:wrap; }
+  .exanim { background:#EDE7DA; border-radius:8px; flex-shrink:0; }
+  .excues { flex:1; min-width:170px; font-size:13px; line-height:1.6; }
+  .excues .mst { color:var(--red); font-weight:700; margin-top:6px; }
+  .fA { animation: flipA 1.4s steps(1) infinite; }
+  .fB { animation: flipB 1.4s steps(1) infinite; }
+  .wo-ex:not(.open) .fA, .wo-ex:not(.open) .fB { animation:none; } /* don't burn CPU animating collapsed tutorials */
+  @keyframes flipA { 0%,50%{opacity:1} 50.01%,100%{opacity:0} }
+  @keyframes flipB { 0%,50%{opacity:0} 50.01%,100%{opacity:1} }
+  @media (max-width:400px){ .count{min-width:70px;padding:6px 10px;} .count b{font-size:24px;} h1{font-size:17px;} nav button{padding:13px 12px;font-size:11px;} }
+  body.widget-mode header, body.widget-mode nav { display:none !important; }
+  body.widget-mode main { max-width:100%; padding:0; }
+  .widget-wrap { min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; }
+  .widget-wrap h2 { font-family:'Arial Black',sans-serif; letter-spacing:1px; text-transform:uppercase; font-size:16px; margin:0 0 4px; color:var(--red); }
+  .widget-wrap .wdate { color:var(--muted); font-size:12px; margin-bottom:18px; }
+  .widget-wrap .rings { margin-bottom:18px; }
+  .widget-tap { margin-top:16px; font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+</style>
+</head>
+<body>
+<div class="offline-banner" id="offlineBanner">Offline — logging locally, will sync when back online</div>
+<header>
+  <div><h1>Fight Camp</h1><span class="round" id="roundLbl">PRE-CAMP RAMP</span></div>
+  <div class="count"><b id="countdown">30</b><span id="cdLbl">DAYS · AUG 9</span><div class="fightbar"><div id="cdBar" style="width:6.25%"></div></div></div>
+</header>
+<nav>
+  <button data-tab="today" class="active">Today</button>
+  <button data-tab="workout">Workout</button>
+  <button data-tab="food">Food</button>
+  <button data-tab="plan">Plan</button>
+  <button data-tab="rounds">Rounds</button>
+  <button data-tab="sleep">Sleep</button>
+  <button data-tab="checkin">Check-in</button>
+  <button data-tab="notifs">Notifs</button>
+</nav>
+<main>
+  <div id="today"></div>
+  <div id="workout" style="display:none"></div>
+  <div id="food" style="display:none"></div>
+  <div id="plan" style="display:none"></div>
+  <div id="rounds" style="display:none"></div>
+  <div id="sleep" style="display:none"></div>
+  <div id="checkin" style="display:none"></div>
+  <div id="notifs" style="display:none"></div>
+</main>
+
+<script>
+// ================= CONSTANTS =================
+const FIGHT = new Date("2026-08-09T00:00:00");
+const CAMP_START = new Date("2026-07-13T00:00:00");
+const KCAL_T = 2850, PRO_T = 100;
+const LS = "fightcamp-v3";
+const LS_PENDING = LS+"-pending";
+
+const FOODS = [
+ {n:"Salmon nigiri (1pc)",k:65,p:4},
+ {n:"Salmon fillet (6oz)",k:350,p:34},
+ {n:"Tuna (1 can)",k:120,p:26},
+ {n:"Chicken breast (6oz)",k:280,p:52},
+ {n:"White rice (1 cup)",k:205,p:4},
+ {n:"Pasta w/ sauce (2 cups)",k:440,p:16},
+ {n:"Bread (2 slices)",k:160,p:6},
+ {n:"Cheese (1oz)",k:110,p:7},
+ {n:"Edamame (1 cup)",k:190,p:18},
+ {n:"Peas/corn (1 cup)",k:120,p:5},
+ {n:"Banana",k:105,p:1},
+ {n:"Apple/fruit serving",k:90,p:0},
+ {n:"Strawberry-banana smoothie",k:250,p:10},
+ {n:"Protein shake (1 scoop)",k:150,p:25},
+ {n:"NKED weight gainer (CHECK LABEL)",k:600,p:30},
+];
+
+const PROXY="http://127.0.0.1:5555";
+const SYNC=()=>localStorage.getItem("fightcamp-sync")==="1"; // Mac-proxy sync stays OFF until the proxy server actually exists
+const DEFAULTS={ done:{}, meals:{}, weekly:[], rounds:[], customFoods:[],
+  notifTimes:{ morning:"09:00", boxing:"15:30", postbox:"17:05", gym:"18:30", sleep:"21:15" },
+  notifsOn:false };
+let D=null;
+try{ D=JSON.parse(localStorage.getItem(LS)||"null"); }catch(e){ D=null; } // corrupt data can't blank the app anymore
+D=Object.assign({},DEFAULTS,(D&&typeof D==="object")?D:{});
+D.notifTimes=Object.assign({},DEFAULTS.notifTimes,D.notifTimes||{});
+["weekly","rounds","customFoods"].forEach(k=>{ if(!Array.isArray(D[k]))D[k]=[]; });
+["done","meals"].forEach(k=>{ if(!D[k]||typeof D[k]!=="object")D[k]={}; });
+
+// ============== OFFLINE-AWARE SAVE ==============
+function setPending(v){ v?localStorage.setItem(LS_PENDING,"1"):localStorage.removeItem(LS_PENDING); updateOfflineBanner(); }
+function updateOfflineBanner(){
+  const b=document.getElementById("offlineBanner");
+  if(!b)return;
+  const pending=!!localStorage.getItem(LS_PENDING);
+  b.classList.toggle("show", SYNC() && (pending || !navigator.onLine));
+  b.textContent = !navigator.onLine ? "Offline — logging locally, will sync when back online" : (pending ? "Reconnected — syncing…" : "");
+}
+const save=()=>{
+  D._saved=Date.now();
+  localStorage.setItem(LS,JSON.stringify(D));
+  if(!SYNC()){ setPending(false); return; } // no proxy = local-only, never show a stuck sync banner
+  if(!navigator.onLine){ setPending(true); return; }
+  fetch(PROXY+"/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(D)})
+    .then(r=>{ if(r.ok) setPending(false); else setPending(true); })
+    .catch(()=>setPending(true));
+};
+window.addEventListener("online",()=>{ updateOfflineBanner(); if(localStorage.getItem(LS_PENDING)) save(); });
+window.addEventListener("offline",updateOfflineBanner);
+setInterval(()=>{ if(SYNC() && localStorage.getItem(LS_PENDING) && navigator.onLine) save(); },20000);
+let __day=null;
+setInterval(()=>{ if(__day && today()!==__day && typeof render==="function") render(); __day=today(); },30000); // refresh when the date rolls over
+
+const fmtDate=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const today=()=>fmtDate(new Date()); // LOCAL time — v8 used UTC, which logged evening entries on tomorrow's date
+
+// ============== SCHEDULE ==============
+const MORNING = ["Neck 4-way isometric 3x15s each","Jump rope easy 3x2min","Plank + side plank 2x30s each","Mobility hips/shoulders/ankles 5min"];
+const PLAN = {
+ 0:{label:"PRE-CAMP RAMP",days:{1:{m:MORNING,b:true,g:["Easy machine circuit: leg press 2x10, chest press 2x10, lat pulldown 2x10, light — grooving form for Wk1"]},2:{m:MORNING,b:true,g:["Rowing machine easy 15min + core 10min"]},3:{m:MORNING,b:true,g:["Cable chops both dir 3x8/side light, assisted pull-up 3x8, sit-ups 3x15"]},4:{m:MORNING,b:true,g:["Easy machine circuit repeat"]},5:{m:["Rest"],b:false,g:["4 rounds x 3min shadowbox/row easy"]},6:{m:["Rest"],b:false,g:["Treadmill Zone 2 25min"]},0:{m:["FULL REST. Check-in."],b:false,g:[]}}},
+ 1:{label:"WEEK 1 · BASE",days:{
+  1:{m:MORNING,b:true,g:["Leg press 3x8 (RPE 6-7)","Seated leg curl 3x10","Leg extension 3x10","Calf raise machine 3x12","Box jump 4x3 full rest","Plank 3x30s"]},
+  2:{m:MORNING,b:true,g:["Chest press machine 3x6","Lat pulldown 3x6","Seated cable row 3x8","Cable chop hi→lo 3x8/side","Cable chop lo→hi 3x8/side","Cable external rotation 2x15/side"]},
+  3:{m:["Jump rope intervals 6x1min hard/1min easy","Agility footwork 10min","Push-ups 3x max-2"],b:true,g:["Rowing intervals 6x1min hard/1min easy","Back extension machine 3x12","Hanging knee raise 3x10 + plank 2x45s"]},
+  4:{m:MORNING,b:true,g:["Shoulder press machine 3x6","Assisted pull-up 3x8","Pec deck rear delt 2x15","Cable chops 3x8/side","Sit-ups 3x15","Dead hang 3x20s"]},
+  5:{m:["Rest or 15min walk"],b:false,g:["CONDITIONING: 6 rounds x 3min — row sprints / shadowbox alternating, 1min rest. LOG ROUNDS in Rounds tab."]},
+  6:{m:["Rest"],b:false,g:["Leg press explosive 4x5","Shoulder press 3x5","Cable chop power 3x8/side","Assisted dip 3x8","Back extension 3x12","Treadmill Zone 2 30min (125-145bpm)"]},
+  0:{m:["FULL REST. Check-in."],b:false,g:[]}}},
+ 2:{label:"WEEK 2 · BUILD",days:{
+  1:{m:MORNING,b:true,g:["Leg press 4x8 heavier","Seated leg curl 4x10","Leg extension 4x10","Calf raise 3x12","Box jump 4x3","Plank 3x40s"]},
+  2:{m:MORNING,b:true,g:["Chest press 4x6","Lat pulldown 4x6","Seated cable row 4x8","Cable chops 3x8/side both dir","External rotation 2x15/side"]},
+  3:{m:["Jump rope 8x1min","Agility 10min","Push-ups 3x max-2"],b:true,g:["Rowing intervals 8x1min hard/1min easy","Back extension 3x12","Core circuit 10min"]},
+  4:{m:MORNING,b:true,g:["Shoulder press 4x6","Assisted pull-up 4x8","Rear delt fly 2x15","Cable chops 3x8/side","Sit-ups 3x20","Dead hang 3x25s"]},
+  5:{m:["Rest"],b:false,g:["CONDITIONING: 8 rounds x 3min. LOG IT."]},
+  6:{m:["Rest"],b:false,g:["Leg press explosive 4x5","Shoulder press 3x5","Cable chop power 3x8/side","Assisted dip 3x8","Treadmill tempo 25min + 6x15s incline sprint"]},
+  0:{m:["FULL REST. Check-in."],b:false,g:[]}}},
+ 3:{label:"WEEK 3 · PEAK",days:{
+  1:{m:MORNING,b:true,g:["Leg press 3x6 +5-10%","Leg curl 3x8 heavy","Calf raise 3x10 heavy","Box jump 4x3 max intent","Plank 3x45s"]},
+  2:{m:MORNING,b:true,g:["Chest press 3x5 heavy","Lat pulldown 3x5 heavy","Cable row 3x6","Cable chops FAST 3x8/side","External rotation 2x15"]},
+  3:{m:["Jump rope 6x1min max speed","Push-ups 3x max"],b:true,g:["Rowing 6x40s ALL-OUT / 90s easy","Core 10min"]},
+  4:{m:MORNING,b:true,g:["Shoulder press 3x5 heavy","Assisted pull-up 3x6 less assist","Cable chops 3x8/side","Sit-ups 3x20","Dead hang 3x30s"]},
+  5:{m:["Rest"],b:false,g:["PEAK TEST: 10 rounds x 3min. Hardest session of camp. LOG IT."]},
+  6:{m:["Rest"],b:false,g:["Explosive only: leg press speed 3x3, cable chop power 2x6/side","Treadmill incline sprints 8x15s ONLY"]},
+  0:{m:["REST + optional easy pool 15-20min. Check-in."],b:false,g:[]}}},
+ 4:{label:"WEEK 4 · FIGHT WEEK",days:{
+  1:{m:["10min mobility only"],b:true,g:["Activation only: 2 sets @60% — leg press, chest press, cable chop. Out in 20min."]},
+  2:{m:["Rest or 15min mobility"],b:true,g:[]},
+  3:{m:["No AM"],b:true,g:[]},
+  4:{m:["Jump rope + shadowbox 20min total. Speed only."],b:false,g:[]},
+  5:{m:["FULL REST. Mobility 15min. Sleep 9+."],b:false,g:[]},
+  6:{m:["Weigh-in/prep day: hydrate, 10min shadowbox, visualization, early sleep"],b:false,g:[]},
+  0:{m:["FIGHT DAY 🥊 Eat 3.5h out: chicken+rice+banana. Arrive -2h. Warm-up -1h: rope 5min, dynamic 5min, shadowbox 10min, pads 10min. Visualize. Go."],b:false,g:[]}}}
+};
+
+function weekDayOf(n){
+  const diff=Math.floor((n-CAMP_START)/864e5);
+  let week = diff<0 ? 0 : Math.min(4,Math.floor(diff/7)+1);
+  return {week,dow:n.getDay()};
+}
+function weekDay(){ return weekDayOf(new Date(today()+"T00:00:00")); }
+const daysToFight=()=>Math.max(0,Math.round((FIGHT-new Date(today()+"T00:00:00"))/864e5));
+function dayItemIds(dd){
+  const ids=[];
+  dd.m.forEach((_,i)=>ids.push("m"+i));
+  if(dd.b) ids.push("box");
+  dd.g.forEach((_,i)=>ids.push("g"+i));
+  return ids;
+}
+
+// ============== STREAKS ==============
+function streaks(){
+  const day0=new Date(today()+"T00:00:00");
+  let proteinStreak=0, checklistStreak=0, checkingP=true, checkingC=true;
+  for(let i=1;i<120;i++){
+    const d=new Date(day0); d.setDate(d.getDate()-i);
+    const key=fmtDate(d);
+    const meals=D.meals[key]||[];
+    const pro=meals.reduce((s,m)=>s+m.p*m.x,0);
+    if(checkingP){ if(pro>=PRO_T) proteinStreak++; else checkingP=false; }
+    const {week,dow}=weekDayOf(d);
+    const dd=PLAN[week].days[dow];
+    const ids=dayItemIds(dd);
+    const done=D.done[key]||[];
+    const allDone = ids.length===0 || ids.every(id=>done.includes(id));
+    if(checkingC){ if(allDone) checklistStreak++; else checkingC=false; }
+    if(!checkingP && !checkingC) break;
+  }
+  const tMeals=D.meals[today()]||[];
+  const tPro=tMeals.reduce((s,m)=>s+m.p*m.x,0);
+  if(tPro>=PRO_T) proteinStreak++;
+  const {week:tw,dow:td}=weekDay();
+  const tdd=PLAN[tw].days[td];
+  const tids=dayItemIds(tdd);
+  const tdone=D.done[today()]||[];
+  if(tids.length===0 || tids.every(id=>tdone.includes(id))) checklistStreak++;
+  return {proteinStreak, checklistStreak};
+}
+function streakCard(){
+  const {proteinStreak,checklistStreak}=streaks();
+  return `<div class="card"><div class="label">STREAKS</div><div class="streaks">
+    <div class="streak-pill ${proteinStreak>=3?'fire':''}"><b>${proteinStreak}</b><span>days protein hit</span></div>
+    <div class="streak-pill ${checklistStreak>=3?'fire':''}"><b>${checklistStreak}</b><span>days full checklist</span></div>
+  </div></div>`;
+}
+
+// ================= RENDER =================
+function ring(val,tgt,label,unit,color){
+  const r=48,c=2*Math.PI*r,pct=Math.min(1,val/tgt);
+  const over=val>tgt*1.15;
+  return `<div style="text-align:center"><svg width="120" height="120" viewBox="0 0 128 128">
+    <circle cx="64" cy="64" r="${r}" fill="none" stroke="#E8E2D6" stroke-width="11"/>
+    <circle cx="64" cy="64" r="${r}" fill="none" stroke="${over?'var(--gold)':color}" stroke-width="11" stroke-linecap="round"
+      stroke-dasharray="${c}" stroke-dashoffset="${c*(1-pct)}" transform="rotate(-90 64 64)" style="transition:stroke-dashoffset .5s"/>
+    <text x="64" y="60" text-anchor="middle" font-family="Georgia" font-size="22" font-weight="700" fill="var(--navy)">${Math.round(val)}</text>
+    <text x="64" y="78" text-anchor="middle" font-size="10" fill="var(--muted)">/ ${tgt} ${unit}</text></svg>
+    <div style="font-size:11px;letter-spacing:1.5px;color:var(--muted);font-weight:700">${label}</div></div>`;
+}
+
+function renderToday(){
+  const {week,dow}=weekDay();
+  document.getElementById("roundLbl").textContent=PLAN[week].label;
+  const dtf=daysToFight();
+  document.getElementById("countdown").textContent=dtf;
+  const pct=Math.min(100,Math.max(0,(1-dtf/32)*100));
+  document.getElementById("cdBar").style.width=pct+"%";
+  document.getElementById("cdLbl").textContent=dtf===0?"FIGHT DAY 🥊":dtf===1?"DAY · AUG 9":"DAYS · AUG 9";
+  const day=PLAN[week].days[dow];
+  const done=D.done[today()]||[];
+  const meals=D.meals[today()]||[];
+  const kcal=meals.reduce((s,m)=>s+m.k*m.x,0), pro=meals.reduce((s,m)=>s+m.p*m.x,0);
+  const chk=(id,txt)=>`<label class="item ${done.includes(id)?'done':''}" onclick="toggle('${id}');event.preventDefault()"><input type="checkbox" ${done.includes(id)?'checked':''}><span>${txt}</span></label>`;
+
+  if(dtf===0){
+    document.getElementById("today").innerHTML=`
+    ${streakCard()}
+    <div class="card" style="border-left:6px solid var(--red)"><div class="label">🥊 FIGHT DAY — LOCKED IN</div>
+    <table>
+      <tr><th>-3.5 hr</th><td>Last real meal: chicken + rice + banana. Nothing heavy after this.</td></tr>
+      <tr><th>-2 hr</th><td>Arrive at venue. Check in, scope the ring, settle.</td></tr>
+      <tr><th>-1 hr</th><td>Warm-up: jump rope 5 min → dynamic stretch 5 min → shadowbox 10 min building intensity → pads 10 min.</td></tr>
+      <tr><th>-20 min</th><td>Glove up. Sip water only.</td></tr>
+      <tr><th>-10 min</th><td>Visualization: first combo, defensive reset, response to getting hit clean.</td></tr>
+      <tr><th>0</th><td><b>Walk out. You did the work. Trust the camp.</b></td></tr>
+    </table>
+    <div class="muted" style="margin-top:8px">Food logging is off today on purpose. Eat the plan, fight, log tomorrow.</div></div>`;
+    return;
+  }
+  let h=streakCard();
+  h+=`<div class="card"><div class="rings">${ring(kcal,KCAL_T,"CALORIES","kcal","var(--red)")}${ring(pro,PRO_T,"PROTEIN","g","var(--navy)")}</div>
+  <div style="text-align:center;margin-top:6px"><button class="btn sm" onclick="goTab('food')">+ Log Food</button></div></div>`;
+  if(dtf===1)h=`<div class="card warn">FIGHT TOMORROW. Today: weigh-in prep, 10 min shadowbox max, big early dinner, lights out by 9:30.</div>`+h;
+  h+=`<div class="card"><div class="label">TODAY'S SCHEDULE</div>`;
+  h+=`<div class="slot">MORNING · HOME (light on purpose)</div>`;
+  day.m.forEach((t,i)=>h+=chk("m"+i,t));
+  if(day.b){h+=`<div class="slot">4:00–5:00 PM · BOXING</div>`+chk("box","Boxing training / sparring 1hr");
+    h+=`<div class="muted" style="padding:4px 0 0 30px">→ Eat by 5:15pm after boxing. That 4-7pm gap is where your calories fall short.</div>`;}
+  if(day.g.length){h+=`<div class="slot">7:00–8:00 PM · GYM (machines + bodyweight)</div>`;day.g.forEach((t,i)=>h+=chk("g"+i,t));}
+  h+=`</div>`;
+  const rAvg7=rolling("rhr"),lastCk=D.weekly[D.weekly.length-1]||{};
+  if(rAvg7&&lastCk.rhr&&+lastCk.rhr>=rAvg7+5)
+    h+=`<div class="card warn">RHR is 5+ bpm over your 7-day average (${rAvg7.toFixed(0)}). Recovery flag — if this holds 3 days, cut morning volume 50%. Do not push through.</div>`;
+  document.getElementById("today").innerHTML=h;
+}
+// Full render only at startup / day change. Actions re-render just the tab they touch — this is what fixes the phone lag.
+const safe=f=>{ try{f();}catch(e){console.error("render error:",e);} };
+function render(){
+  safe(renderToday); safe(renderWorkout); safe(renderFood); safe(renderPlan);
+  safe(renderRounds); safe(renderSleep); safe(renderCheckin); safe(renderNotifs);
+}
+
+// ================= EXERCISE ANIMATIONS =================
+// Flipbook stick figures: each pattern = 2 frames. h=head [cx,cy], s=segments, p=paths, st=static segs (both frames)
+const FRAMES = {
+ squat:{
+  A:{h:[60,18],s:[[60,24,60,52],[60,32,48,42],[60,32,72,42],[60,52,53,72],[53,72,53,93],[60,52,67,72],[67,72,67,93]]},
+  B:{h:[60,34],s:[[60,40,60,62],[60,46,78,40],[60,50,78,46],[60,62,44,68],[44,68,50,93],[60,62,76,68],[76,68,70,93]]}},
+ splitsquat:{
+  A:{h:[60,20],s:[[60,26,60,54],[60,34,50,46],[60,34,70,46],[60,54,48,72],[48,72,48,93],[60,54,72,70],[72,70,78,93]]},
+  B:{h:[60,30],s:[[60,36,60,62],[60,42,50,54],[60,42,70,54],[60,62,44,66],[44,66,46,93],[60,62,74,76],[74,76,84,93]]}},
+ bridge:{
+  A:{h:[18,88],s:[[24,90,60,90],[60,90,74,78],[74,78,74,92],[30,90,34,80]]},
+  B:{h:[18,88],s:[[24,90,60,72],[60,72,74,72],[74,72,74,92],[30,88,34,78]]}},
+ pushup:{
+  A:{h:[92,58],s:[[86,62,40,74],[78,64,78,92],[40,74,20,80],[52,70,52,90]]},
+  B:{h:[92,74],s:[[86,78,40,84],[78,80,66,92],[40,84,20,88],[52,82,46,92]]}},
+ press:{
+  A:{h:[60,26],s:[[60,32,60,58],[60,38,48,30],[60,38,72,30],[60,58,52,78],[52,78,52,93],[60,58,68,78],[68,78,68,93]]},
+  B:{h:[60,26],s:[[60,32,60,58],[60,38,52,14],[60,38,68,14],[60,58,52,78],[52,78,52,93],[60,58,68,78],[68,78,68,93]]}},
+ pull:{
+  st:[[30,14,90,14]],
+  A:{h:[60,34],s:[[50,14,58,40],[70,14,62,40],[60,40,60,64],[60,64,55,84],[60,64,65,84]]},
+  B:{h:[60,22],s:[[50,14,57,27],[70,14,63,27],[60,28,60,52],[60,52,55,72],[60,52,65,72]]}},
+ dip:{
+  st:[[30,50,48,50],[72,50,90,50]],
+  A:{h:[60,28],s:[[60,34,60,58],[60,38,48,50],[60,38,72,50],[60,58,66,76],[66,76,60,88]]},
+  B:{h:[60,40],s:[[60,46,60,68],[60,48,48,52],[60,48,72,52],[60,68,66,84],[66,84,60,92]]}},
+ plank:{
+  A:{h:[90,62],s:[[84,66,36,73],[76,68,74,90],[36,73,18,79],[52,70,52,88]]},
+  B:{h:[90,60],s:[[84,64,36,70],[76,66,74,90],[36,70,18,77],[52,68,52,88]]}},
+ crunch:{
+  A:{h:[22,84],s:[[28,86,58,88],[58,88,70,72],[70,72,82,86],[30,84,24,76]]},
+  B:{h:[36,70],s:[[42,74,58,88],[58,88,70,72],[70,72,82,86],[44,74,38,66]]}},
+ rope:{
+  A:{h:[60,22],s:[[60,28,60,54],[60,36,46,44],[60,36,74,44],[60,54,54,76],[54,76,54,92],[60,54,66,76],[66,76,66,92]],p:["M46,44 Q60,112 74,44"]},
+  B:{h:[60,16],s:[[60,22,60,48],[60,30,46,38],[60,30,74,38],[60,48,54,66],[54,66,56,84],[60,48,66,66],[66,66,64,84]],p:["M46,38 Q60,-26 74,38"]}},
+ punch:{
+  A:{h:[56,26],s:[[56,32,56,58],[56,38,48,28],[56,38,64,28],[56,58,48,78],[48,78,48,93],[56,58,66,76],[66,76,70,93]]},
+  B:{h:[58,26],s:[[58,32,58,58],[58,38,50,28],[58,38,86,32],[58,58,50,78],[50,78,50,93],[58,58,68,76],[68,76,72,93]]}},
+ burpee:{
+  A:{h:[60,18],s:[[60,24,60,52],[60,32,48,42],[60,32,72,42],[60,52,53,72],[53,72,53,93],[60,52,67,72],[67,72,67,93]]},
+  B:{h:[92,68],s:[[86,72,40,80],[78,74,78,92],[40,80,20,85],[52,77,52,91]]}},
+ climber:{
+  A:{h:[90,58],s:[[84,62,36,72],[78,64,78,90],[36,72,18,78],[40,71,54,58]]},
+  B:{h:[90,58],s:[[84,62,36,72],[78,64,78,90],[36,72,16,72],[42,70,58,66]]}},
+ chop:{
+  A:{h:[60,24],s:[[60,30,60,58],[60,38,42,22],[60,40,44,26],[60,58,52,78],[52,78,52,93],[60,58,68,78],[68,78,68,93]]},
+  B:{h:[62,28],s:[[62,34,62,60],[62,42,84,58],[62,46,84,62],[62,60,52,78],[52,78,50,93],[62,60,72,78],[72,78,74,93]]}},
+ calf:{
+  A:{h:[60,20],s:[[60,26,60,54],[60,34,50,46],[60,34,70,46],[60,54,54,74],[54,74,54,93],[60,54,66,74],[66,74,66,93],[50,93,58,93],[62,93,70,93]]},
+  B:{h:[60,14],s:[[60,20,60,48],[60,28,50,40],[60,28,70,40],[60,48,54,68],[54,68,54,87],[60,48,66,68],[66,68,66,87],[52,87,56,87],[64,87,68,87]]}},
+ jump:{
+  A:{h:[60,34],s:[[60,40,60,62],[60,46,44,58],[60,50,46,62],[60,62,46,68],[46,68,50,93],[60,62,74,68],[74,68,70,93]]},
+  B:{h:[68,12],s:[[68,18,64,42],[68,24,56,10],[68,24,82,14],[64,42,50,52],[50,52,42,66],[64,42,74,56],[74,56,72,72]]}},
+ rowm:{
+  st:[[24,82,96,82]],
+  A:{h:[40,50],s:[[44,56,54,74],[46,60,72,64],[54,74,72,66],[72,66,84,80]]},
+  B:{h:[30,46],s:[[34,52,50,74],[38,58,52,60],[50,74,70,74],[70,74,86,78]]}},
+ run:{
+  A:{h:[60,22],s:[[60,28,60,52],[60,36,72,28],[60,36,48,44],[60,52,74,66],[74,66,70,88],[60,52,48,70],[48,70,40,84]]},
+  B:{h:[60,22],s:[[60,28,60,52],[60,36,48,28],[60,36,72,44],[60,52,46,66],[46,66,50,88],[60,52,72,70],[72,70,80,84]]}},
+ neck:{
+  A:{h:[60,30],s:[[60,38,60,64],[78,48,67,32],[60,64,54,84],[60,64,66,84]]},
+  B:{h:[60,30],s:[[60,38,60,64],[42,48,53,32],[60,64,54,84],[60,64,66,84]]}},
+ stretch:{
+  A:{h:[60,24],s:[[60,30,60,58],[60,36,52,14],[60,36,68,14],[60,58,52,78],[52,78,52,93],[60,58,68,78],[68,78,68,93]]},
+  B:{h:[74,58],s:[[70,62,60,58],[60,58,60,64],[70,62,58,76],[60,64,52,80],[52,80,52,93],[60,64,68,80],[68,80,68,93]]}},
+ wallsit:{
+  st:[[86,20,86,93]],
+  A:{h:[70,34],s:[[74,40,80,60],[74,44,58,50],[80,60,60,62],[60,62,60,93],[80,62,78,93]]},
+  B:{h:[70,36],s:[[74,42,80,62],[74,46,58,52],[80,62,60,64],[60,64,60,93],[80,64,78,93]]}},
+ hang:{
+  st:[[30,14,90,14]],
+  A:{h:[60,32],s:[[52,14,58,38],[68,14,62,38],[60,38,60,64],[60,64,56,86],[60,64,64,86]]},
+  B:{h:[60,33],s:[[52,14,58,39],[68,14,62,39],[60,39,60,65],[60,65,56,87],[60,65,64,87]]}},
+ bike:{
+  st:[[30,80,50,80],[70,80,90,80],[40,80,60,62],[60,62,78,80]],
+  A:{h:[52,36],s:[[54,42,60,62],[54,46,70,54],[60,62,52,72],[52,72,60,78]]},
+  B:{h:[52,36],s:[[54,42,60,62],[54,46,70,54],[60,62,68,70],[68,70,60,76]]}}
+};
+function exSVG(pat){
+  const f=FRAMES[pat]||FRAMES.stretch;
+  const seg=(s,cls)=>s.map(v=>`<line x1="${v[0]}" y1="${v[1]}" x2="${v[2]}" y2="${v[3]}"/>`).join("");
+  const pth=(p)=>((p)||[]).map(d=>`<path d="${d}" fill="none"/>`).join("");
+  const fr=(f,cls)=>`<g class="${cls}"><circle cx="${f.h[0]}" cy="${f.h[1]}" r="6" fill="var(--navy)" stroke="none"/>${seg(f.s)}${pth(f.p)}</g>`;
+  return `<svg class="exanim" width="120" height="104" viewBox="0 0 120 104" stroke="var(--navy)" stroke-width="3.5" stroke-linecap="round" fill="none">
+    <line x1="8" y1="96" x2="112" y2="96" stroke="var(--line)" stroke-width="2"/>
+    ${f.st?`<g stroke="var(--muted)" stroke-width="3">${seg(f.st)}</g>`:""}
+    ${fr(f.A,"fA")}${fr(f.B,"fB")}</svg>`;
+}
+
+// ================= WORKOUT GENERATOR =================
+let WO = { loc:"gym", tod:"PM", mins:45 };
+let LASTWO = null;
+const FOCUS_BY_DOW = {1:"lower",2:"upper",3:"engine",4:"upper",5:"engine",6:"explosive",0:"recovery"};
+const FOCUS_LABEL = {lower:"LOWER BODY / POWER BASE",upper:"UPPER BODY / PUNCH CHAIN",engine:"CONDITIONING / ENGINE",explosive:"EXPLOSIVE / SPEED",recovery:"RECOVERY / MOBILITY"};
+const POOLS = {
+  home:{
+    warm:[
+      {n:"Jump rope easy",d:"3 min",m:3,a:"rope",c:["Stay on the balls of your feet","Wrists spin the rope, not arms","Small hops — 1-2 inches max"],x:"Jumping too high. It wastes energy and wrecks rhythm."},
+      {n:"Dynamic stretch",d:"leg swings, arm circles, hip openers · 3 min",m:3,a:"stretch",c:["Move through the range, don't hold","Bigger circles each rep","Match breathing to movement"],x:"Static holding before training — save holds for after."},
+      {n:"Shadowbox easy",d:"find rhythm · 2 min",m:2,a:"punch",c:["50% speed, perfect form","Move your feet the whole time","Exhale sharp on every punch"],x:"Going hard immediately. This is a warm-up, not a round."}],
+    lower:[
+      {n:"Jump squats",d:"4x8, full reset between",m:4,a:"squat",c:["Land soft, absorb through hips","Full squat depth before takeoff","Arms drive the jump"],x:"Landing stiff-legged — knees take the hit instead of muscles."},
+      {n:"Split squats",d:"3x10/leg",m:5,a:"splitsquat",c:["Back knee drops straight down","Front knee tracks over toes","Torso tall, core braced"],x:"Leaning forward — pushes the load into your knee."},
+      {n:"Glute bridges",d:"3x15",m:3,a:"bridge",c:["Drive through heels","Squeeze glutes hard at the top","Ribs down, don't arch your back"],x:"Pushing through your lower back instead of glutes."},
+      {n:"Wall sit",d:"3x45s",m:4,a:"wallsit",c:["Thighs parallel to floor","Whole back flat on the wall","Breathe steady — don't hold it"],x:"Sitting too high. If it's not burning by 20s, sink lower."},
+      {n:"Single-leg calf raises",d:"3x15/leg",m:4,a:"calf",c:["Full stretch at the bottom","Pause 1s at the top","Control down for 2s"],x:"Bouncing reps — you're using the tendon, not the muscle."},
+      {n:"Broad jumps",d:"4x3, max intent",m:4,a:"jump",c:["Swing arms back then explode","Land in a quarter squat","Full rest between jumps — this is power, not cardio"],x:"Rushing reps. Tired jumping trains you to be slow."}],
+    upper:[
+      {n:"Push-ups",d:"4x max-2 (leave 2 in the tank)",m:5,a:"pushup",c:["Body one straight line","Elbows 45° from ribs, not flared","Chest to an inch off the floor"],x:"Sagging hips — that's a core failure, not a chest rep."},
+      {n:"Pike push-ups",d:"3x8",m:4,a:"press",c:["Hips high, body an upside-down V","Head travels toward the floor between hands","Press back to the V"],x:"Turning it into a normal push-up by dropping the hips."},
+      {n:"Chair dips",d:"3x10",m:4,a:"dip",c:["Shoulders down away from ears","Elbows point straight back","Lower until upper arm is parallel"],x:"Shrugging shoulders up — hello shoulder impingement."},
+      {n:"Towel rows (door anchor)",d:"3x10",m:4,a:"pull",c:["Squeeze shoulder blades together","Pull to your ribs, not your chin","Slow 2s on the way back"],x:"Yanking with arms only — the pull starts from the back."},
+      {n:"Plank shoulder taps",d:"3x20",m:3,a:"plank",c:["Feet wider for a stable base","Hips stay dead still while tapping","Squeeze glutes the whole time"],x:"Hips rocking side to side — slow down until they don't."},
+      {n:"Explosive push-ups",d:"4x5",m:4,a:"pushup",c:["Push the floor away hard enough to pop hands up","Land with soft elbows","Reset to perfect form every rep"],x:"Grinding out slow reps — if the pop is gone, set's over."}],
+    engine:[
+      {n:"Jump rope intervals",d:"1min hard / 1min easy",m:2,rep:true,a:"rope",c:["Hard minute = faster feet, not higher jumps","Easy minute keeps moving, never stops","Relax shoulders or they'll gas first"],x:"Death-gripping the handles. Loose hands, fast wrists."},
+      {n:"Shadowbox rounds",d:"3min round, 1min rest",m:4,rep:true,a:"punch",c:["Every punch comes back to guard","Move angles, not just back and forth","Breathe out on every shot"],x:"Arm punching — rotate hips into everything."},
+      {n:"Burpees",d:"3x10",m:5,a:"burpee",c:["Chest touches floor every rep","Snap hips forward to stand","Jump with full extension at the top"],x:"Worm-ing up off the floor — keep the body tight."},
+      {n:"Mountain climbers",d:"3x30s",m:4,a:"climber",c:["Shoulders stacked over wrists","Drive knees to chest, fast","Hips level with shoulders"],x:"Butt rising up — you're hiding from your core."}],
+    explosive:[
+      {n:"Broad jumps",d:"5x3, walk back rest",m:5,a:"jump",c:["Max effort every single jump","Stick the landing before moving","Fully reset between reps"],x:"Treating it like conditioning. Power needs full rest."},
+      {n:"Jump squats",d:"4x5, max height",m:4,a:"squat",c:["Explode from full depth","Reach for the ceiling","Soft landings, loud jumps"],x:"Cutting depth to jump sooner — depth is the loading phase."},
+      {n:"Explosive push-ups",d:"4x5",m:4,a:"pushup",c:["Think 'punch the floor'","Hands leave the ground every rep","Stop when speed drops"],x:"Continuing after slowing down — that's no longer power work."},
+      {n:"Shadowbox speed bursts",d:"6x30s all-out / 30s off",m:6,a:"punch",c:["Max hand speed the full 30s","Stay light on your feet","Full recovery in the 30s off"],x:"Pacing yourself. These 30s are meant to be ugly-fast."}],
+    core:[
+      {n:"Plank",d:"3x45s",m:4,a:"plank",c:["Squeeze glutes and quads","Push floor away from shoulders","Straight line ear-hip-ankle"],x:"Hips sagging as you tire — end the set instead."},
+      {n:"Side plank",d:"2x30s/side",m:3,a:"plank",c:["Stack shoulders, hips, feet","Push hip up away from floor","Neck neutral, look forward"],x:"Hip dipping toward the floor — this trains nothing."},
+      {n:"Hollow hold",d:"3x20s",m:3,a:"crunch",c:["Lower back pressed to floor","Arms and legs long and low","Ribs pulled down"],x:"Back arching off the floor — raise legs higher to fix."},
+      {n:"Sit-ups",d:"3x15",m:3,a:"crunch",c:["Curl up one vertebra at a time","Exhale on the way up","Control the way down — no flopping"],x:"Yanking your neck with your hands."},
+      {n:"Leg raises",d:"3x10",m:3,a:"crunch",c:["Lower back stays glued down","Lower legs slow — 3 seconds","Stop the set when back lifts"],x:"Swinging legs with momentum."},
+      {n:"Russian twists",d:"3x20",m:3,a:"crunch",c:["Rotate from the ribs, not arms","Chest stays proud","Slow and controlled beats fast"],x:"Just waving hands side to side without torso rotation."}],
+    neck:[
+      {n:"Neck 4-way isometric",d:"3x15s each direction",m:4,a:"neck",c:["Push head into your hand, hand doesn't move","Build pressure gradually over 3s","Neck stays in neutral the whole time"],x:"Jerky pressure. Ramp in, hold steady, ramp out. This is your punch-absorption insurance."}],
+    cool:[
+      {n:"Walk it off + deep breathing",d:"2 min",m:2,a:"run",c:["Slow nasal breathing, 4s in / 6s out","Let heart rate drop below 100","Shake out arms and hands"],x:"Sitting down immediately after hard work."},
+      {n:"Static stretch",d:"quads, hams, chest, lats · 4 min",m:4,a:"stretch",c:["Hold 30s minimum per position","Breathe into the stretch","Mild tension, never pain"],x:"Bouncing in the stretch — hold still."}]
+  },
+  gym:{
+    warm:[
+      {n:"Bike or row easy",d:"4 min",m:4,a:"bike",c:["Conversational pace","Gradually raise effort last minute","Purpose: raise core temp, not fatigue"],x:"Racing the warm-up. You get zero points for it."},
+      {n:"Dynamic stretch",d:"3 min",m:3,a:"stretch",c:["Leg swings, arm circles, hip openers","Move through ranges you'll train","Bigger range each rep"],x:"Skipping it because machines feel 'safe'. Warm tissue moves better."},
+      {n:"Light sets of first machine",d:"2 min",m:2,a:"press",c:["50% weight, full range","Groove the exact movement","2 easy sets of 8-10"],x:"Loading up on set one — earn the weight."}],
+    lower:[
+      {n:"Leg press",d:"3x8",m:6,a:"squat",c:["Feet shoulder-width, mid-platform","Lower until knees ~90°","Push through whole foot, don't lock knees hard"],x:"Half reps with too much weight. Full range, controlled."},
+      {n:"Seated leg curl",d:"3x10",m:5,a:"squat",c:["Pull heels down and under","1s squeeze at full curl","3s controlled return"],x:"Letting the stack slam — the return IS the rep."},
+      {n:"Leg extension",d:"3x10",m:5,a:"squat",c:["Pause 1s at full extension","Control down slowly","Toes pointed slightly up"],x:"Kicking the weight up with momentum."},
+      {n:"Calf raise machine",d:"3x12",m:4,a:"calf",c:["Deep stretch at the bottom","Full rise to tiptoes","2s down every rep"],x:"Short bouncy reps in the middle range."},
+      {n:"Box jumps",d:"4x3, full rest",m:5,a:"jump",c:["Step down, never jump down","Land quiet in quarter squat","Max intent every jump"],x:"Chasing box height with a sketchy landing. Height is ego, landing is training."}],
+    upper:[
+      {n:"Chest press machine",d:"3x6",m:6,a:"press",c:["Shoulder blades pinned back","Press through, stop just short of lockout","3s lowering phase"],x:"Shoulders rolling forward at the press — keep them pinned."},
+      {n:"Lat pulldown",d:"3x6",m:5,a:"pull",c:["Pull bar to upper chest","Lead with elbows driving down","Chest up, slight lean back"],x:"Swinging your torso to move heavier weight."},
+      {n:"Seated cable row",d:"3x8",m:5,a:"rowm",c:["Pull to your ribs","Squeeze shoulder blades 1s","Arms straight before next pull"],x:"Rocking back and forth — torso stays near vertical."},
+      {n:"Shoulder press machine",d:"3x6",m:5,a:"press",c:["Ribs down, no back arch","Press to full extension","Control down to ear level"],x:"Arching your lower back to grind reps out."},
+      {n:"Assisted pull-ups",d:"3x8",m:5,a:"pull",c:["Full dead hang at bottom","Chin over bar, chest to bar if possible","Less assistance week over week"],x:"Half reps at the top — the bottom half builds the back."},
+      {n:"Cable chops hi→lo",d:"3x8/side",m:5,a:"chop",c:["Rotate from hips and core","Arms stay long — they're just handles","Pivot back foot like throwing a cross"],x:"Arm-pulling the cable. This is a punch-power drill, rotate."},
+      {n:"Cable external rotation",d:"2x15/side",m:3,a:"neck",c:["Elbow pinned to your side","Rotate out slow, return slower","Light weight — this is shoulder insurance"],x:"Going heavy. This protects your shoulders for sparring, it's not a lift to win."},
+      {n:"Assisted dips",d:"3x8",m:4,a:"dip",c:["Shoulders down and back","Lower to 90° elbows","Slight forward lean is fine"],x:"Bouncing out of the bottom position."}],
+    engine:[
+      {n:"Rowing intervals",d:"1min hard / 1min easy",m:2,rep:true,a:"rowm",c:["Legs → back → arms, in that order","Drive hard through the legs","Easy minute = keep the flywheel moving"],x:"Pulling with arms first — the rower is a leg machine."},
+      {n:"Treadmill Zone 2",d:"steady 125-145 bpm",m:5,rep:true,a:"run",c:["Should be able to hold a conversation","Nose breathing if possible","Boring on purpose — builds your gas tank"],x:"Creeping the speed up. Zone 2 discipline wins rounds 3+."},
+      {n:"Incline treadmill sprints",d:"15s sprint / 75s walk",m:2,rep:true,a:"run",c:["Full effort all 15 seconds","Straddle rails before belt stops","Walk the full recovery"],x:"Cutting rest short — quality of sprints beats quantity."},
+      {n:"Jump rope rounds",d:"1min on / 30s off",m:2,rep:true,a:"rope",c:["Fast feet, low hops","Relax the shoulders","Breathe rhythm with the rope"],x:"Tensing up as you tire — shake out and reset."}],
+    explosive:[
+      {n:"Leg press explosive",d:"4x5, move it FAST",m:6,a:"squat",c:["~60% weight, max speed up","Control down, explode up","Stop the set if speed drops"],x:"Going heavy and slow — today speed IS the load."},
+      {n:"Cable chop power",d:"3x6/side, max speed",m:5,a:"chop",c:["Throw it like a punch","Full hip rotation","Complete rest between sets"],x:"Rushing sets tired. Power dies when rushed."},
+      {n:"Box jumps",d:"4x3, max intent",m:5,a:"jump",c:["Explode from quarter squat","Arms drive up hard","Step down every rep"],x:"Jumping down from the box — that's how ankles end camps."},
+      {n:"Med ball slams",d:"3x8 (if available)",m:4,a:"chop",c:["Full body: reach tall, slam through the floor","Hips snap like a punch","Pick up, reset, repeat"],x:"Slamming with just arms — get your whole body into it."}],
+    core:[
+      {n:"Hanging knee raises",d:"3x10",m:4,a:"hang",c:["Dead hang, shoulders active","Knees to chest, curl the hips up","No swinging between reps"],x:"Kipping momentum — dead stop each rep."},
+      {n:"Back extension machine",d:"3x12",m:4,a:"bridge",c:["Squeeze glutes at the top","Don't hyperextend past straight","2s down"],x:"Whipping up past neutral — straight line is the finish."},
+      {n:"Plank",d:"3x45s",m:4,a:"plank",c:["Glutes and quads tight","Push the floor away","One straight line"],x:"Hips sagging — end the set instead."},
+      {n:"Cable woodchop core",d:"2x10/side",m:4,a:"chop",c:["Slow and controlled today","Rotate from the core","Resist the cable on the way back"],x:"Turning core day into power day — save it."}],
+    neck:[
+      {n:"Neck 4-way isometric",d:"3x15s each direction",m:4,a:"neck",c:["Push head into hand, nothing moves","Gradual pressure build","All 4 directions equal work"],x:"Skipping it. Your chin gets checked Aug 9 — this is the insurance."}],
+    cool:[
+      {n:"Easy bike/walk",d:"3 min",m:3,a:"bike",c:["Truly easy — heart rate down","Nasal breathing","Roll shoulders out"],x:"Skipping straight to the locker room after intervals."},
+      {n:"Static stretch",d:"hips, hams, chest, lats · 4 min",m:4,a:"stretch",c:["30s holds","Breathe into each position","Mild tension only"],x:"Bouncing. Hold. Still."}]
+  }
+};
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+function genWorkout(){
+  const {week,dow}=weekDay();
+  const P=POOLS[WO.loc];
+  let budget=WO.mins;
+  const blocks=[];
+  let focus=FOCUS_BY_DOW[dow];
+  let notes=[];
+  const fightWeek = week===4;
+  const isAM = WO.tod==="AM";
+
+  if(fightWeek){
+    budget=Math.min(budget,25);
+    notes.push("FIGHT WEEK: volume capped at 25 min. Sharpness only, nothing that makes you sore.");
+  }
+  if(isAM && !fightWeek){
+    notes.push("AM session — deliberately light. Hard work happens at boxing and evening gym. This primes, it doesn't drain.");
+  }
+
+  const warmBudget = budget>=35?8:5;
+  let warm=[],wm=0;
+  for(const e of P.warm){ if(wm+e.m<=warmBudget){warm.push(e);wm+=e.m;} }
+  blocks.push({title:"WARM-UP",items:warm,mins:wm});
+  budget-=wm;
+
+  const coolBudget = budget>=25?6:(budget>=15?3:0);
+  budget-=coolBudget;
+
+  let main=[],mm=0;
+  if(focus==="recovery" || (fightWeek&&dow!==1)){
+    const pool=[...P.neck,{n:"Mobility flow",d:"hips, shoulders, ankles · 8 min",m:8,a:"stretch",c:["Slow circles through each joint","Follow tightness, spend time there","No forcing"],x:"Rushing through it — this IS the workout today."},{n:"Easy shadowbox",d:"technique only · 5 min",m:5,a:"punch",c:["50% speed","Perfect guard returns","Footwork focus"],x:"Sneaking in hard rounds on a recovery day."},{n:"Breathing",d:"4s in / 6s out, lying down · 4 min",m:4,a:"stretch",c:["In through nose 4s","Out through mouth 6s","Let everything sink into the floor"],x:"Scrolling your phone during it."}];
+    for(const e of pool){ if(mm+e.m<=budget){main.push(e);mm+=e.m;} }
+    blocks.push({title:"RECOVERY WORK",items:main,mins:mm});
+  } else if(isAM){
+    const pool=[...P.neck,...shuffle(P.core).slice(0,2),{n:"Jump rope easy",d:"3x2min",m:6,a:"rope",c:["Light bounces, find flow","Practice crossovers if fresh","Shoulders loose"],x:"Turning it into conditioning — save it for PM."},{n:"Mobility flow",d:"5 min",m:5,a:"stretch",c:["Hips, shoulders, ankles","Move slow through full ranges","Breathe"],x:"Skipping it to sleep 5 more minutes."}];
+    for(const e of pool){ if(mm+e.m<=budget){main.push(e);mm+=e.m;} }
+    blocks.push({title:"AM PRIMER · "+FOCUS_LABEL[focus],items:main,mins:mm});
+  } else {
+    if(focus==="engine"){
+      const iv=shuffle(P.engine.filter(e=>e.rep))[0];
+      let rounds=Math.max(4,Math.floor((budget*0.65)/iv.m));
+      if(week>=3)rounds=Math.min(rounds+2,12);
+      const ivMins=rounds*iv.m;
+      main.push({...iv,n:iv.n,d:`${rounds} rounds · ${iv.d}`,m:ivMins});
+      mm+=ivMins;
+      for(const e of shuffle(P.core)){ if(mm+e.m<=budget){main.push(e);mm+=e.m;break;} }
+      blocks.push({title:"ENGINE · "+FOCUS_LABEL[focus],items:main,mins:mm});
+    } else {
+      const pool=shuffle(P[focus]);
+      for(const e of pool){ if(mm+e.m<=budget*0.8){main.push(e);mm+=e.m;} }
+      blocks.push({title:"MAIN · "+FOCUS_LABEL[focus],items:main,mins:mm});
+      let fin=[],fm=0;
+      for(const e of shuffle(P.core)){ if(fm+e.m<=budget-mm){fin.push(e);fm+=e.m;} if(fin.length>=2)break; }
+      if(fin.length){blocks.push({title:"CORE FINISHER",items:fin,mins:fm});mm+=fm;}
+    }
+  }
+  budget-=mm;
+
+  if(coolBudget){
+    let cool=[],cm=0;
+    for(const e of P.cool){ if(cm+e.m<=coolBudget+budget){cool.push(e);cm+=e.m;} }
+    blocks.push({title:"COOL-DOWN",items:cool,mins:cm});
+  }
+  const total=blocks.reduce((s,b)=>s+b.mins,0);
+  return {blocks,total,notes,focus,week};
+}
+function setWO(k,v){ WO[k]=v; renderWorkout(true); }
+function toggleEx(id){
+  const el=document.getElementById(id);
+  if(el)el.classList.toggle("open");
+}
+function renderWorkout(regen){
+  const el=document.getElementById("workout");
+  if(!el)return;
+  const {dow}=weekDay();
+  const focus=FOCUS_BY_DOW[dow];
+  let h=`<div class="card"><div class="label">WORKOUT BUILDER</div>
+  <div class="muted" style="margin-bottom:10px">Today's focus from the camp plan: <b>${FOCUS_LABEL[focus]}</b>. Pick where, when, and how long — I build the session. Tap any exercise for the form tutorial.</div>
+  <div style="margin-bottom:8px"><div class="chips">
+    <div class="chip ${WO.loc==='home'?'on':''}" onclick="setWO('loc','home')">🏠 Home</div>
+    <div class="chip ${WO.loc==='gym'?'on':''}" onclick="setWO('loc','gym')">🏋️ Gym</div>
+    <div class="chip ${WO.tod==='AM'?'on':''}" onclick="setWO('tod','AM')">☀️ AM</div>
+    <div class="chip ${WO.tod==='PM'?'on':''}" onclick="setWO('tod','PM')">🌙 PM</div>
+  </div></div>
+  <div style="margin-bottom:4px"><b id="woMins">${WO.mins} minutes</b></div>
+  <input type="range" min="15" max="75" step="5" value="${WO.mins}" oninput="document.getElementById('woMins').textContent=this.value+' minutes'" onchange="setWO('mins',+this.value)">
+  <button class="btn" style="margin-top:10px" onclick="renderWorkout(true)">🔄 Regenerate</button></div>`;
+
+  if(regen || !LASTWO) LASTWO=genWorkout();
+  const w=LASTWO;
+  h+=`<div class="card"><div class="label">YOUR SESSION · ~${w.total} MIN</div>`;
+  w.notes.forEach(n=>h+=`<div class="warn card" style="padding:10px;margin-bottom:10px">${n}</div>`);
+  let exi=0;
+  w.blocks.forEach(b=>{
+    h+=`<div class="wo-block"><div class="bh"><span>${b.title}</span><span>${b.mins} min</span></div>`;
+    b.items.forEach(it=>{
+      const id="ex"+(exi++);
+      h+=`<div class="wo-ex" id="${id}">
+        <div class="exhead" onclick="toggleEx('${id}')"><span><b>${it.n}</b><br><span class="muted">${it.d}</span></span><span class="caret">▶</span></div>
+        <div class="exdrop"><div class="exdrop-inner">
+          ${exSVG(it.a||"stretch")}
+          <div class="excues">${(it.c||["Move with control","Full range of motion","Breathe"]).map(c=>"• "+c).join("<br>")}
+          <div class="mst">✕ ${it.x||"Rushing reps with bad form."}</div></div>
+        </div></div>
+      </div>`;
+    });
+    h+=`</div>`;
+  });
+  h+=`<div class="muted" style="margin-top:12px">Effort guide: work sets around RPE ${w.week>=3?'7-8':'6-7'} this week. If anything hurts (not burns — hurts), skip it and tell your coach.</div></div>`;
+  el.innerHTML=h;
+}
+
+function renderFood(){
+  const meals=D.meals[today()]||[];
+  const all=[...FOODS,...D.customFoods];
+  let f=`<div class="card"><div class="label">BARCODE SCAN (packaged foods — free, Open Food Facts)</div>
+  <div class="muted" style="margin-bottom:8px">Chrome only (Safari doesn't support it). Scan your NKED tub once and it saves to your food list forever.</div>
+  <button class="btn" onclick="startScan()">📷 Scan with Camera</button>
+  <label class="btn ghost" style="display:inline-block;margin-left:8px">Upload Barcode Photo<input type="file" accept="image/*" style="display:none" onchange="scanFromFile(this)"></label>
+  <label class="btn ghost" style="display:inline-block;margin-left:8px">📸 AI Photo Scan<input type="file" accept="image/*" capture="environment" style="display:none" onchange="photoScan(this)"></label>
+  <div class="muted" style="margin-top:6px">AI Photo Scan works on iPhone too — snap your plate, get an estimate (~1¢/scan, your API key).</div>
+  <div id="scanArea" style="margin-top:10px"></div>
+  <div id="scanResult"></div></div>`;
+  f+=`<div class="card"><div class="label">QUICK ADD — TAP A FOOD</div><div class="chips">`;
+  all.forEach((fd,i)=>f+=`<div class="chip" onclick="addFood(${i})">${fd.n}<br><span class="muted">${fd.k} kcal · ${fd.p}g P</span></div>`);
+  f+=`</div></div>`;
+  f+=`<div class="card"><div class="label">ADD CUSTOM FOOD (from label — do this for NKED)</div>
+  <div class="grid2"><input type="text" id="cfN" placeholder="Name"><input type="number" id="cfK" placeholder="kcal">
+  <input type="number" id="cfP" placeholder="protein g"><button class="btn" onclick="addCustom()">Save Food</button></div></div>`;
+  f+=`<div class="card"><div class="label">EATEN TODAY</div>`;
+  if(!meals.length)f+=`<div class="muted">Nothing yet.</div>`;
+  meals.forEach((m,i)=>{f+=`<div class="meal-row"><span>${m.t} · ${m.n}${m.x>1?" ×"+m.x:""}</span><span><b>${m.k*m.x} kcal · ${m.p*m.x}g P</b> <span class="del" onclick="delMeal(${i})">✕</span></span></div>`;});
+  f+=`</div>`;
+  f+=`<div class="card"><div class="label">LAST 7 DAYS · KCAL (line = target)</div><div class="bars">`;
+  for(let i=6;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const key=fmtDate(d);
+    const ms=D.meals[key]||[];
+    const k=ms.reduce((s,m)=>s+m.k*m.x,0);
+    const pct=Math.min(100,k/KCAL_T*100);
+    f+=`<div class="bar" title="${k} kcal"><div class="fill" style="height:${pct}%"></div><div class="lbl">${key.slice(5)}</div></div>`;
+  }
+  f+=`</div><div style="border-top:2px dashed var(--red);margin-top:-55px;margin-bottom:70px"></div></div>`;
+  document.getElementById("food").innerHTML=f;
+}
+
+function renderPlan(){
+  const {week}=weekDay();
+  let p="";
+  for(const[wk,wd] of Object.entries(PLAN)){
+    if(wk==0&&week>0)continue;
+    p+=`<div class="card"><div class="label" ${wk==week?'':'style="color:var(--navy)"'}>${wd.label} ${wk==week?"← YOU ARE HERE":""}</div><table>`;
+    for(const d of [1,2,3,4,5,6,0]){
+      const dd=wd.days[d];
+      p+=`<tr><th>${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d]}</th><td><b>AM:</b> ${dd.m[0]}${dd.m.length>1?" +":""}<br>${dd.b?"<b>4-5:</b> Boxing<br>":""}${dd.g.length?"<b>7-8:</b> "+dd.g[0]+(dd.g.length>1?" +":""):""}</td></tr>`;
+    }
+    p+=`</table></div>`;
+  }
+  document.getElementById("plan").innerHTML=p;
+}
+
+function rpeAssessment(rpes,dtf,week){
+  const avg=rpes.reduce((a,b)=>a+b,0)/rpes.length;
+  let target=[6,8],ctx="conditioning day";
+  if(week>=3){target=[7,9];ctx="peak-phase conditioning";}
+  if(week<=1){target=[5,7];ctx="base-phase conditioning";}
+  let verdict,note;
+  if(avg<target[0]-1){verdict="UNDERTRAINED";note="Effort was low for this phase. If you felt fine and just cruised, push harder next session. If you were flat/tired, check sleep and recovery trends.";}
+  else if(avg>target[1]+1){verdict="OVERREACHED";note="That's a hard session, higher than target for "+ctx+". Fine occasionally, but if avg RPE keeps running this high, back off volume or you're heading toward burnout/injury.";}
+  else if(avg>=target[0]&&avg<=target[1]){verdict="ON TARGET";note="Right in the zone for "+ctx+". This is the intensity that builds fitness without wrecking recovery.";}
+  else{verdict=avg<target[0]?"SLIGHTLY LOW":"SLIGHTLY HIGH";note="Close to target range for "+ctx+", not a concern on its own.";}
+  return {avg,verdict,note,target};
+}
+function renderRounds(){
+  const {week}=weekDay();
+  let r=`<div class="card"><div class="label">FRIDAY CONDITIONING LOG (your #1 progression metric)</div>
+  <input type="number" id="rdN" placeholder="Rounds completed" min="1" max="15" style="width:100%" oninput="roundRPEs(this.value)">
+  <div id="rpeList" style="margin-top:8px"></div>
+  <button class="btn" style="margin-top:10px" onclick="addRounds()">Log Session</button></div>`;
+  if(D.rounds.length){
+    const last=D.rounds[D.rounds.length-1];
+    if(Array.isArray(last.rpes)&&last.rpes.length){
+      const a=rpeAssessment(last.rpes,daysToFight(),week);
+      const color = a.verdict==="ON TARGET" ? "var(--navy)" : "var(--red)";
+      r+=`<div class="card" style="border-left:6px solid ${color}"><div class="label" style="color:${color}">LAST SESSION ASSESSMENT</div>
+      <div style="font-size:20px;font-weight:900;letter-spacing:1px;margin-bottom:4px">${a.verdict}</div>
+      <div class="muted">Avg RPE ${a.avg.toFixed(1)}/10 · target ${a.target[0]}-${a.target[1]} for current phase</div>
+      <div style="margin-top:8px;font-size:14px">${a.note}</div></div>`;
+    }
+  }
+  if(D.rounds.length>=2){
+    const recent=D.rounds.slice(-4);
+    const avgs=recent.map(x=>Array.isArray(x.rpes)?x.rpes.reduce((a,b)=>a+b,0)/x.rpes.length:x.r);
+    const roundCounts=recent.map(x=>x.n);
+    r+=`<div class="card"><div class="label">TREND (last ${recent.length} sessions)</div>
+    <div class="muted" style="margin-bottom:6px">Rounds: ${roundCounts.join(" → ")} · Avg RPE: ${avgs.map(a=>a.toFixed(1)).join(" → ")}</div>
+    <div class="muted">${roundCounts[roundCounts.length-1]>roundCounts[0]?"Rounds trending up — conditioning is building.":roundCounts[roundCounts.length-1]===roundCounts[0]?"Rounds holding steady.":"Rounds trending down — check recovery/sleep before next session."}</div></div>`;
+  }
+  r+=`<div class="card"><div class="label">HISTORY (target: 6 → 8 → 10 rounds by peak week)</div><table>`;
+  if(!D.rounds.length)r+=`<tr><td class="muted">Nothing yet. Log every Friday.</td></tr>`;
+  D.rounds.slice().reverse().forEach(x=>{
+    const per=Array.isArray(x.rpes)?`<br><span class="muted" style="font-size:12px">RPE by round: ${x.rpes.join(" · ")}</span>`:"";
+    const avg=Array.isArray(x.rpes)?(x.rpes.reduce((a,b)=>a+b,0)/x.rpes.length).toFixed(1):x.r;
+    r+=`<tr><th>${x.date}</th><td>${x.n} rounds · avg RPE ${avg}/10${per}</td></tr>`;
+  });
+  r+=`</table></div>`;
+  document.getElementById("rounds").innerHTML=r;
+}
+function roundRPEs(n){
+  n=Math.min(15,Math.max(0,+n||0));
+  const opts=Array.from({length:10},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join("");
+  let h="";
+  for(let i=1;i<=n;i++)h+=`<div class="meal-row"><span>Round ${i} effort (RPE)</span><select id="rpe${i}" style="padding:6px 10px;font-size:14px;width:auto;min-height:38px"><option value="">–</option>${opts}</select></div>`;
+  document.getElementById("rpeList").innerHTML=h;
+}
+
+function renderSleep(){
+  document.getElementById("sleep").innerHTML=`
+  <div class="card"><div class="label">SLEEP PLAN (anchored to your 8pm gym finish)</div>
+  <table>
+    <tr><th>8:00 PM</th><td>Gym ends. NKED shake immediately.</td></tr>
+    <tr><th>8:15-8:45</th><td>Real dinner (chicken/salmon + rice/pasta). Going to bed underfed wrecks sleep quality.</td></tr>
+    <tr><th>9:15 PM</th><td>Wind-down: screens off/dim, warm shower (temp drop after triggers sleepiness).</td></tr>
+    <tr><th>9:45-10:00</th><td>Lights out. Cool room (65-68°F), dark, phone across the room.</td></tr>
+    <tr><th>7:15-7:30 AM</th><td>Wake. ≈9.5 hrs. SAME time every day incl. weekends — consistency beats duration.</td></tr>
+  </table>
+  <div style="margin-top:12px;font-size:14px;line-height:1.7">
+  <b>Morning energy rules:</b><br>
+  • Zero caffeine — you're 15, and evening training + caffeine = broken sleep<br>
+  • Sunlight within 30 min of waking — sets your body clock harder than any alarm<br>
+  • 500ml water on waking<br>
+  • Can't sleep in 20 min? Get up, dim light, boring book, retry<br>
+  • Weekend sleep-in max +1hr or Monday feels like jet lag<br><br>
+  <b>Why 9.5 hrs:</b> Growth hormone releases mostly in deep sleep. You're mid-growth-spurt running 2-3 sessions/day. Under 9 hrs = slower recovery, flat training, higher injury risk. Sleep outranks every workout in this plan.</div></div>`;
+}
+
+function rolling(field,days=7){
+  const vals=D.weekly.filter(r=>r[field]!==""&&r[field]!=null).slice(-days).map(r=>+r[field]).filter(v=>!isNaN(v)&&v>0);
+  return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+}
+function weightChart(){
+  const pts=D.weekly.filter(r=>+r.weight>0).map(r=>({d:r.date,w:+r.weight}));
+  if(pts.length<2)return `<div class="muted">Log 2+ weights to see your trend.</div>`;
+  const roll=pts.map((p,i)=>{
+    const win=pts.slice(Math.max(0,i-2),i+1);
+    return win.reduce((s,x)=>s+x.w,0)/win.length;
+  });
+  const w=340,h=100,allVals=[...pts.map(p=>p.w),...roll],min=Math.min(...allVals)-1,max=Math.max(...allVals)+1;
+  const x=i=>28+(w-38)*i/(pts.length-1),y=v=>h-16-(h-28)*(v-min)/((max-min)||1);
+  const path=pts.map((p,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(p.w).toFixed(1)}`).join(" ");
+  const rollPath=roll.map((v,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const daysSpan=(new Date(pts[pts.length-1].d)-new Date(pts[0].d))/864e5;
+  const totalChange=pts[pts.length-1].w-pts[0].w;
+  const perWeek = daysSpan>0 ? (totalChange/daysSpan)*7 : 0;
+  let rateWarn="";
+  if(Math.abs(perWeek)>=1.5){
+    rateWarn=`<div class="warn card" style="margin-top:8px;padding:10px">⚠️ ${perWeek<0?"Losing":"Gaining"} ${Math.abs(perWeek).toFixed(1)} lb/week. Over 1.5 lb/week ${perWeek<0?"loss usually means muscle loss, not just fat":"gain is likely water/fat, not lean mass"} mid-camp. ${perWeek<0?"Eat more, especially post-boxing.":"Check if it's water retention vs actual gain."}</div>`;
+  }
+  return `<svg viewBox="0 0 ${w} ${h+18}" style="width:100%;max-width:440px">
+    <path d="${path}" fill="none" stroke="var(--red)" stroke-width="2"/>
+    <path d="${rollPath}" fill="none" stroke="var(--navy)" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.7"/>
+    ${pts.map((p,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(p.w).toFixed(1)}" r="2.5" fill="var(--navy)"/>`).join("")}
+    <text x="2" y="14" font-size="9" fill="#888">${max.toFixed(0)}</text>
+    <text x="2" y="${h-6}" font-size="9" fill="#888">${min.toFixed(0)}</text></svg>
+  <div class="muted">${pts[0].w} lb (${pts[0].d.slice(5)}) → ${pts[pts.length-1].w} lb (${pts[pts.length-1].d.slice(5)}) · ${perWeek>=0?"+":""}${perWeek.toFixed(1)} lb/week · dashed line = 3-log rolling avg</div>
+  ${rateWarn}`;
+}
+function trendCard(){
+  const rAvg=rolling("rhr"),hAvg=rolling("hrv"),last=D.weekly[D.weekly.length-1]||{};
+  let t="";
+  if(rAvg)t+=`<div>RHR 7-day avg: <b>${rAvg.toFixed(0)} bpm</b>${last.rhr?` · latest ${last.rhr}`:""}</div>`;
+  if(hAvg)t+=`<div>HRV 7-day avg: <b>${hAvg.toFixed(0)} ms</b>${last.hrv?` · latest ${last.hrv}`:""}</div>`;
+  if(rAvg&&last.rhr&&+last.rhr>=rAvg+5)t+=`<div class="warn card" style="margin-top:6px;padding:8px">⚠️ RHR 5+ over average — recovery flag</div>`;
+  if(hAvg&&last.hrv&&+last.hrv<=hAvg*0.8)t+=`<div class="warn card" style="margin-top:6px;padding:8px">⚠️ HRV 20%+ below average — go light today</div>`;
+  if(!t)t=`<div class="muted">Averages appear after a few check-ins. One bad night won't trigger alarms — trends will.</div>`;
+  return t;
+}
+async function forceSync(){
+  const msg=document.getElementById("syncMsg");
+  if(!SYNC()){ msg.textContent="No sync server set up — data lives on this device only. Use Export CSV to back up."; return; }
+  msg.textContent="Force syncing…";
+  try{
+    const r=await fetch(PROXY+"/data");
+    const remote=r.ok?await r.json():{};
+    if(remote&&remote._saved&&(!D._saved||remote._saved>D._saved)){
+      D=remote;localStorage.setItem(LS,JSON.stringify(D));render();
+      document.getElementById("syncMsg").textContent="Pulled newer data from Mac ✓";
+    }else{
+      save();msg.textContent="Local was newest — pushed to Mac ✓";
+    }
+  }catch(e){msg.textContent="✗ Can't reach the Mac. Is it awake? Same WiFi? Proxy running?";}
+}
+function renderCheckin(){
+  let c=`<div class="card"><div class="label">CHECK-IN (weight+RHR daily, full check-in Sundays)</div>
+  <div class="grid2"><input type="number" id="ciW" placeholder="Weight (lb)"><input type="number" id="ciR" placeholder="Resting HR">
+  <input type="number" id="ciS" placeholder="Sleep hrs" step="0.5"><input type="number" id="ciRd" placeholder="Readiness 1-10">
+  <input type="number" id="ciH" placeholder="HRV (ms)"><input type="number" id="ciRR" placeholder="Resp rate" step="0.5"></div>
+  <button class="btn" style="margin-top:10px" onclick="addCheckin()">Save</button>
+  <button class="btn ghost" style="margin-top:10px" onclick="syncWatch()">⌚ Sync from Watch</button>
+  <button class="btn ghost" style="margin-top:10px" onclick="forceSync()">🔄 Force Sync</button>
+  <div id="syncMsg" class="muted" style="margin-top:6px"></div></div>
+  <div class="card"><div class="label">RECOVERY TRENDS (7-day rolling)</div>${trendCard()}</div>
+  <div class="card"><div class="label">WEIGHT TREND</div>${weightChart()}</div>
+  <div class="card"><div class="label">HISTORY</div><table>`;
+  if(!D.weekly.length)c+=`<tr><td class="muted">Nothing yet.</td></tr>`;
+  D.weekly.slice().reverse().forEach(r=>c+=`<tr><th>${r.date}</th><td>${r.weight?r.weight+" lb":""} ${r.rhr?"· RHR "+r.rhr:""} ${r.sleep?"· "+r.sleep+"h":""} ${r.hrv?"· HRV "+r.hrv:""} ${r.rr?"· RR "+r.rr:""} ${r.ready?"· "+r.ready+"/10":""}</td></tr>`);
+  c+=`</table><button class="btn ghost" style="margin-top:10px" onclick="exportCSV()">Export CSV</button></div>`;
+  document.getElementById("checkin").innerHTML=c;
+}
+
+function renderNotifs(){
+  const nt=D.notifTimes;
+  document.getElementById("notifs").innerHTML=`
+  <div class="card"><div class="label">NOTIFICATIONS</div>
+  <div class="muted" style="margin-bottom:10px">Fire while this tab is open. Pin the tab. (Closed-tab notifs need an installed app — different project.)</div>
+  <table>
+    <tr><th>Morning session</th><td><input type="time" value="${nt.morning}" onchange="setNT('morning',this.value)"></td></tr>
+    <tr><th>Boxing prep + snack</th><td><input type="time" value="${nt.boxing}" onchange="setNT('boxing',this.value)"></td></tr>
+    <tr><th>POST-BOXING MEAL</th><td><input type="time" value="${nt.postbox}" onchange="setNT('postbox',this.value)"></td></tr>
+    <tr><th>Gym reminder</th><td><input type="time" value="${nt.gym}" onchange="setNT('gym',this.value)"></td></tr>
+    <tr><th>Sleep wind-down</th><td><input type="time" value="${nt.sleep}" onchange="setNT('sleep',this.value)"></td></tr>
+  </table>
+  <button class="btn" style="margin-top:12px" onclick="enableNotifs()">${D.notifsOn?"Notifications ON ✓":"Enable Notifications"}</button>
+  <button class="btn ghost" style="margin-top:12px" onclick="testNotif()">Test</button></div>
+  <div class="card"><div class="label">HOME SCREEN WIDGET</div>
+  <div class="muted">For a REAL home screen widget: install the free Scriptable app, paste the widget script (ask Claude for it), then long-press home screen → add Scriptable widget. It shows countdown, calories, protein, and streaks, and updates on your home WiFi.</div>
+  <div style="margin-top:10px">Quick version (no Scriptable): add <code id="widgetUrl" style="background:#EDE7DA;padding:2px 6px;border-radius:4px;word-break:break-all"></code> as a second Home Screen icon named "Today".</div>
+  <button class="btn ghost sm" style="margin-top:10px" onclick="window.open(location.pathname+'?view=widget','_blank')">Preview Widget View</button></div>`;
+  const wu=document.getElementById("widgetUrl");
+  if(wu) wu.textContent = location.origin + location.pathname + "?view=widget";
+}
+
+// ================= ACTIONS =================
+function goTab(t){document.querySelector(`nav button[data-tab=${t}]`).click();}
+function toggle(id){const t=today();D.done[t]=D.done[t]||[];D.done[t]=D.done[t].includes(id)?D.done[t].filter(x=>x!==id):[...D.done[t],id];save();renderToday();}
+function addFood(i){
+  const all=[...FOODS,...D.customFoods];const fd=all[i];
+  const x=parseFloat(prompt(`How many servings of "${fd.n}"? (e.g. 6 for 6 nigiri, 1 for one serving)`,"1"));
+  if(!x||x<=0)return;
+  const t=today();D.meals[t]=D.meals[t]||[];
+  D.meals[t].push({n:fd.n,k:fd.k,p:fd.p,x,t:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})});
+  save();renderFood();renderToday();
+}
+function delMeal(i){const t=today();D.meals[t].splice(i,1);save();renderFood();renderToday();}
+function addCustom(){
+  const n=document.getElementById("cfN").value,k=+document.getElementById("cfK").value,p=+document.getElementById("cfP").value;
+  if(!n||!k)return alert("Name + kcal required");
+  D.customFoods.push({n,k,p:p||0});save();renderFood();
+}
+function addRounds(){
+  const n=+document.getElementById("rdN").value;
+  if(!n)return;
+  const rpes=[];
+  for(let i=1;i<=n;i++){
+    const v=+((document.getElementById("rpe"+i)||{}).value);
+    if(!v)return alert("Set RPE for round "+i+" (how hard it felt, 1-10)");
+    rpes.push(v);
+  }
+  D.rounds.push({date:today(),n,rpes});save();renderRounds();
+}
+function addCheckin(){
+  const g=i=>document.getElementById(i).value;
+  if(!g("ciW")&&!g("ciR"))return;
+  D.weekly.push({date:today(),weight:g("ciW"),rhr:g("ciR"),sleep:g("ciS"),ready:g("ciRd"),hrv:g("ciH"),rr:g("ciRR")});save();renderCheckin();renderToday();
+}
+async function syncWatch(){
+  const msg=document.getElementById("syncMsg");
+  if(!SYNC()){ msg.textContent="Watch sync needs the Mac proxy server, which isn't built yet. Enter numbers manually for now."; return; }
+  msg.textContent="Fetching from proxy…";
+  try{
+    const r=await fetch(PROXY+"/");
+    if(!r.ok)throw new Error("no data yet — run Manual Export in Health Auto Export first");
+    const d=await r.json();
+    const set=(id,v)=>{if(v!=null&&document.getElementById(id))document.getElementById(id).value=Math.round(v*10)/10;};
+    set("ciR",d.rhr);set("ciS",d.sleep_hrs);set("ciH",d.hrv);set("ciRR",d.rr);
+    let stale=d.date&&d.date!==today()?" ⚠️ DATA IS FROM "+d.date+", not today — resync in Health Auto Export":"";
+    let stages=(d.deep_min!=null)?` (Deep ${d.deep_min}m · REM ${d.rem_min}m · Core ${d.core_min}m)`:"";
+    msg.textContent="Synced ✓ ("+(d.timestamp||"").slice(0,16).replace("T"," ")+")"+stages+stale+" — check numbers, then hit Save";
+  }catch(e){
+    msg.textContent="✗ "+e.message+". Is the proxy running? (Terminal: python3 ~/health_proxy.py)";
+  }
+}
+function setNT(k,v){D.notifTimes[k]=v;save();}
+function exportCSV(){
+  let rows=["type,date,field1,field2,field3,field4,field5,field6"];
+  D.weekly.forEach(r=>rows.push(`checkin,${r.date},${r.weight},${r.rhr},${r.sleep},${r.ready},${r.hrv||""},${r.rr||""}`));
+  D.rounds.forEach(r=>rows.push(`rounds,${r.date},${r.n},"${Array.isArray(r.rpes)?r.rpes.join("|"):r.r}",,`));
+  Object.entries(D.meals).forEach(([dt,ms])=>ms.forEach(m=>rows.push(`meal,${dt},"${m.n}",${m.k*m.x},${m.p*m.x},x${m.x}`)));
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([rows.join("\n")],{type:"text/csv"}));
+  a.download="fight-camp.csv";a.click();
+}
+
+// ================= BARCODE SCANNING =================
+let scanStream=null,scanTimer=null;
+function stopScan(){
+  if(scanTimer)clearInterval(scanTimer);
+  if(scanStream)scanStream.getTracks().forEach(t=>t.stop());
+  scanStream=null;scanTimer=null;
+  document.getElementById("scanArea").innerHTML="";
+}
+async function startScan(){
+  if(!("BarcodeDetector" in window))return alert("Your browser doesn't support barcode scanning. Use Chrome, or use Upload Barcode Photo.");
+  const area=document.getElementById("scanArea");
+  area.innerHTML=`<video id="scanVid" style="width:100%;max-width:380px;border:2px solid var(--navy)" autoplay playsinline></video><br><button class="btn ghost sm" onclick="stopScan()">Stop</button>`;
+  try{
+    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    const vid=document.getElementById("scanVid");vid.srcObject=scanStream;
+    const det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
+    scanTimer=setInterval(async()=>{
+      try{
+        const codes=await det.detect(vid);
+        if(codes.length){stopScan();lookupBarcode(codes[0].rawValue);}
+      }catch(e){}
+    },400);
+  }catch(e){stopScan();alert("Camera blocked. Allow camera for this page, or use Upload Barcode Photo.");}
+}
+async function scanFromFile(inp){
+  const file=inp.files[0];if(!file)return;inp.value="";
+  if(!("BarcodeDetector" in window))return alert("Use Chrome for barcode detection.");
+  const img=new Image();
+  img.onload=async()=>{
+    try{
+      const det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
+      const codes=await det.detect(img);
+      if(codes.length)lookupBarcode(codes[0].rawValue);
+      else document.getElementById("scanResult").innerHTML=`<div class="warn card" style="margin-top:8px">No barcode found in that photo. Get closer, better light, barcode flat.</div>`;
+    }catch(e){alert("Detection failed: "+e.message);}
+  };
+  img.src=URL.createObjectURL(file);
+}
+async function lookupBarcode(code){
+  const res=document.getElementById("scanResult");
+  res.innerHTML=`<div class="muted" style="margin-top:8px">Looking up ${code}…</div>`;
+  try{
+    const r=await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`);
+    const j=await r.json();
+    if(j.status!==1)return res.innerHTML=`<div class="warn card" style="margin-top:8px">Barcode ${code} not in Open Food Facts. Add it manually from the label below — takes 20 seconds.</div>`;
+    const p=j.product,nut=p.nutriments||{};
+    const name=p.product_name||"Unknown product";
+    let k=nut["energy-kcal_serving"],pr=nut["proteins_serving"],basis="per serving";
+    if(k==null){
+      k=nut["energy-kcal_100g"];pr=nut["proteins_100g"];basis="per 100g";
+      const grams=parseFloat(prompt(`"${name}" only has per-100g data (${Math.round(k||0)} kcal / ${Math.round(pr||0)}g P per 100g).\nHow many grams is YOUR serving? (check label)`,"100"));
+      if(!grams)return res.innerHTML="";
+      k=k*grams/100;pr=(pr||0)*grams/100;basis=grams+"g serving";
+    }
+    if(k==null)return res.innerHTML=`<div class="warn card" style="margin-top:8px">Product found but no nutrition data. Enter from label manually.</div>`;
+    k=Math.round(k);pr=Math.round(pr||0);
+    res.innerHTML=`<div class="card" style="border-left:6px solid var(--red);margin-top:8px">
+      <b>${name}</b><br>${k} kcal · ${pr}g protein (${basis})<br>
+      <button class="btn sm" style="margin-top:8px" onclick='saveScanned(${JSON.stringify(name)},${k},${pr},true)'>Log Now + Save to List</button>
+      <button class="btn ghost sm" style="margin-top:8px" onclick='saveScanned(${JSON.stringify(name)},${k},${pr},false)'>Save to List Only</button></div>`;
+  }catch(e){res.innerHTML=`<div class="warn card" style="margin-top:8px">Lookup failed — offline? Try again or enter manually.</div>`;}
+}
+function saveScanned(n,k,p,logNow){
+  if(!D.customFoods.some(f=>f.n===n))D.customFoods.push({n,k,p});
+  if(logNow){
+    const t=today();D.meals[t]=D.meals[t]||[];
+    D.meals[t].push({n,k,p,x:1,t:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})});
+  }
+  save();renderFood();renderToday();
+}
+function shrinkImage(file,max){
+  return new Promise((ok,err)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const s=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement("canvas");
+      c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      ok(c.toDataURL("image/jpeg",0.8).split(",")[1]);
+    };
+    img.onerror=()=>err(new Error("Couldn't read image"));
+    img.src=URL.createObjectURL(file);
+  });
+}
+async function photoScan(inp){
+  const file=inp.files[0];if(!file)return;inp.value="";
+  const res=document.getElementById("scanResult");
+  res.innerHTML=`<div class="muted" style="margin-top:8px">Analyzing photo with Claude… (a few seconds)</div>`;
+  try{
+    const b64=await shrinkImage(file,1024);
+    const r=await fetch(PROXY+"/scanfood",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({image:b64,media_type:"image/jpeg"})});
+    const j=await r.json();
+    if(j.error)throw new Error(j.error);
+    res.innerHTML=`<div class="card" style="border-left:6px solid var(--red);margin-top:8px">
+      <b>${j.name}</b><br>~${j.kcal} kcal · ~${j.protein_g}g protein <span class="muted">(${j.confidence} confidence — AI estimate, not label data)</span><br>
+      <button class="btn sm" style="margin-top:8px" onclick='saveScanned(${JSON.stringify(j.name)},${Math.round(j.kcal)},${Math.round(j.protein_g)},true)'>Log Now + Save to List</button>
+      <button class="btn ghost sm" style="margin-top:8px" onclick='saveScanned(${JSON.stringify(j.name)},${Math.round(j.kcal)},${Math.round(j.protein_g)},false)'>Save to List Only</button></div>`;
+  }catch(e){res.innerHTML=`<div class="warn card" style="margin-top:8px">✗ ${e.message}</div>`;}
+}
+
+// ================= NOTIFICATIONS =================
+const MSGS={
+  morning:"Morning session — light only. Neck, core, rope, mobility. 20 min.",
+  boxing:"Boxing at 4. Eat your smoothie now.",
+  postbox:"POST-BOXING MEAL. Eat now — chicken/rice or leftovers. Don't roll into gym underfueled.",
+  gym:"Gym at 7. Machines + bodyweight. Check today's list.",
+  sleep:"Wind-down. Screens off, shower, lights out by 10."
+};
+function enableNotifs(){
+  Notification.requestPermission().then(p=>{
+    D.notifsOn=(p==="granted");save();renderNotifs();
+    if(p!=="granted")alert("Blocked — allow notifications for this page in browser settings.");
+  });
+}
+function testNotif(){if(Notification.permission==="granted")new Notification("Fight Camp",{body:"Working. Keep tab pinned."});else alert("Enable first.");}
+let fired={};
+setInterval(()=>{
+  if(!D.notifsOn||Notification.permission!=="granted")return;
+  const now=new Date(),hm=String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+  for(const[k,t] of Object.entries(D.notifTimes)){
+    const key=today()+k;
+    if(hm===t&&!fired[key]){fired[key]=1;new Notification("Fight Camp",{body:MSGS[k]});}
+  }
+},20000);
+
+// ================= WIDGET MODE =================
+function renderWidgetView(){
+  const meals=D.meals[today()]||[];
+  const kcal=meals.reduce((s,m)=>s+m.k*m.x,0), pro=meals.reduce((s,m)=>s+m.p*m.x,0);
+  const {proteinStreak,checklistStreak}=streaks();
+  const dtf=daysToFight();
+  document.body.innerHTML=`<div class="widget-wrap">
+    <h2>${dtf} DAYS TO FIGHT</h2>
+    <div class="wdate">${new Date().toLocaleDateString([],{weekday:'long',month:'short',day:'numeric'})}</div>
+    <div class="rings">${ring(kcal,KCAL_T,"CALORIES","kcal","var(--red)")}${ring(pro,PRO_T,"PROTEIN","g","var(--navy)")}</div>
+    <div class="streaks" style="max-width:280px">
+      <div class="streak-pill ${proteinStreak>=3?'fire':''}"><b>${proteinStreak}</b><span>protein streak</span></div>
+      <div class="streak-pill ${checklistStreak>=3?'fire':''}"><b>${checklistStreak}</b><span>checklist streak</span></div>
+    </div>
+    <div class="widget-tap" onclick="location.href=location.pathname">Tap to open full app →</div>
+  </div>`;
+}
+
+// ================= TABS / INIT =================
+const isWidget = new URLSearchParams(location.search).get('view')==='widget';
+if(isWidget){
+  document.body.classList.add('widget-mode');
+  renderWidgetView();
+  setInterval(renderWidgetView,60000);
+}else{
+  document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+    document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    ["today","workout","food","plan","rounds","sleep","checkin","notifs"].forEach(t=>document.getElementById(t).style.display=t===b.dataset.tab?"block":"none");
+  });
+  render();
+  updateOfflineBanner();
+  (async()=>{
+    if(!SYNC())return;
+    try{
+      const r=await fetch(PROXY+"/data");
+      if(r.ok){
+        const remote=await r.json();
+        if(remote&&remote._saved&&(!D._saved||remote._saved>D._saved)){
+          D=remote;localStorage.setItem(LS,JSON.stringify(D));render();
+        }
+      }
+    }catch(e){}
+  })();
+  if("serviceWorker" in navigator){
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  }
+}
+</script>
+</body></html>

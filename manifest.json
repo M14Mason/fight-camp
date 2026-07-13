@@ -1,15 +1,10 @@
 {
   "name": "Fight Camp",
-  "short_name": "FightCamp",
-  "start_url": "/app",
+  "short_name": "Fight Camp",
+  "start_url": "/fight-camp/",
+  "scope": "/fight-camp/",
   "display": "standalone",
   "background_color": "#1A2238",
   "theme_color": "#1A2238",
-  "icons": [
-    {
-      "src": "/icon.png",
-      "sizes": "180x180",
-      "type": "image/png"
-    }
-  ]
+  "icons": [{ "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }]
 }

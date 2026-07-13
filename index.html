@@ -104,7 +104,6 @@
   <button data-tab="rounds">Rounds</button>
   <button data-tab="sleep">Sleep</button>
   <button data-tab="checkin">Check-in</button>
-  <button data-tab="notifs">Notifs</button>
 </nav>
 <main>
   <div id="today"></div>
@@ -114,7 +113,6 @@
   <div id="rounds" style="display:none"></div>
   <div id="sleep" style="display:none"></div>
   <div id="checkin" style="display:none"></div>
-  <div id="notifs" style="display:none"></div>
 </main>
 
 <script>
@@ -333,7 +331,7 @@ function renderToday(){
 const safe=f=>{ try{f();}catch(e){console.error("render error:",e);} };
 function render(){
   safe(renderToday); safe(renderWorkout); safe(renderFood); safe(renderPlan);
-  safe(renderRounds); safe(renderSleep); safe(renderCheckin); safe(renderNotifs);
+  safe(renderRounds); safe(renderSleep); safe(renderCheckin);
 }
 
 // ================= EXERCISE ANIMATIONS =================
@@ -616,7 +614,7 @@ function renderWorkout(regen){
       h+=`<div class="wo-ex" id="${id}">
         <div class="exhead" onclick="toggleEx('${id}')"><span><b>${it.n}</b><br><span class="muted">${it.d}</span></span><span class="caret">▶</span></div>
         <div class="exdrop"><div class="exdrop-inner">
-          ${exSVG(it.a||"stretch")}
+          <a class="btn ghost sm" style="align-self:center;flex-shrink:0;text-decoration:none" target="_blank" href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(it.n+' exercise proper form')}">📷 See photos</a>
           <div class="excues">${(it.c||["Move with control","Full range of motion","Breathe"]).map(c=>"• "+c).join("<br>")}
           <div class="mst">✕ ${it.x||"Rushing reps with bad form."}</div></div>
         </div></div>
@@ -631,18 +629,11 @@ function renderWorkout(regen){
 function renderFood(){
   const meals=D.meals[today()]||[];
   const all=[...FOODS,...D.customFoods];
-  let f=`<div class="card"><div class="label">BARCODE SCAN (packaged foods — free, Open Food Facts)</div>
-  <div class="muted" style="margin-bottom:8px">Chrome only (Safari doesn't support it). Scan your NKED tub once and it saves to your food list forever.</div>
-  <button class="btn" onclick="startScan()">📷 Scan with Camera</button>
-  <label class="btn ghost" style="display:inline-block;margin-left:8px">Upload Barcode Photo<input type="file" accept="image/*" style="display:none" onchange="scanFromFile(this)"></label>
-  <label class="btn ghost" style="display:inline-block;margin-left:8px">📸 AI Photo Scan<input type="file" accept="image/*" capture="environment" style="display:none" onchange="photoScan(this)"></label>
-  <div class="muted" style="margin-top:6px">AI Photo Scan works on iPhone too — snap your plate, get an estimate (~1¢/scan, your API key).</div>
-  <div id="scanArea" style="margin-top:10px"></div>
-  <div id="scanResult"></div></div>`;
+  let f="";
   f+=`<div class="card"><div class="label">QUICK ADD — TAP A FOOD</div><div class="chips">`;
   all.forEach((fd,i)=>f+=`<div class="chip" onclick="addFood(${i})">${fd.n}<br><span class="muted">${fd.k} kcal · ${fd.p}g P</span></div>`);
   f+=`</div></div>`;
-  f+=`<div class="card"><div class="label">ADD CUSTOM FOOD (from label — do this for NKED)</div>
+  f+=`<div class="card"><div class="label">ADD CUSTOM FOOD (from the label)</div>
   <div class="grid2"><input type="text" id="cfN" placeholder="Name"><input type="number" id="cfK" placeholder="kcal">
   <input type="number" id="cfP" placeholder="protein g"><button class="btn" onclick="addCustom()">Save Food</button></div></div>`;
   f+=`<div class="card"><div class="label">EATEN TODAY</div>`;
@@ -814,8 +805,6 @@ function renderCheckin(){
   <input type="number" id="ciS" placeholder="Sleep hrs" step="0.5"><input type="number" id="ciRd" placeholder="Readiness 1-10">
   <input type="number" id="ciH" placeholder="HRV (ms)"><input type="number" id="ciRR" placeholder="Resp rate" step="0.5"></div>
   <button class="btn" style="margin-top:10px" onclick="addCheckin()">Save</button>
-  <button class="btn ghost" style="margin-top:10px" onclick="syncWatch()">⌚ Sync from Watch</button>
-  <button class="btn ghost" style="margin-top:10px" onclick="forceSync()">🔄 Force Sync</button>
   <div id="syncMsg" class="muted" style="margin-top:6px"></div></div>
   <div class="card"><div class="label">RECOVERY TRENDS (7-day rolling)</div>${trendCard()}</div>
   <div class="card"><div class="label">WEIGHT TREND</div>${weightChart()}</div>
@@ -1062,7 +1051,7 @@ if(isWidget){
   document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
     document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
     b.classList.add("active");
-    ["today","workout","food","plan","rounds","sleep","checkin","notifs"].forEach(t=>document.getElementById(t).style.display=t===b.dataset.tab?"block":"none");
+    ["today","workout","food","plan","rounds","sleep","checkin"].forEach(t=>document.getElementById(t).style.display=t===b.dataset.tab?"block":"none");
   });
   render();
   updateOfflineBanner();

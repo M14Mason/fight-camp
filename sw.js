@@ -1,5 +1,5 @@
 // Simple offline cache. Bump the version string when you update index.html.
-const C = "fightcamp-v10";
+const C = "fightcamp-v11";
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(C).then(c => c.addAll(["./", "index.html", "manifest.json", "icon.png"])));
   self.skipWaiting();

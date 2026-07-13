@@ -48,6 +48,8 @@
   .chips { display:flex; flex-wrap:wrap; gap:8px; }
   .chip { border:2px solid var(--navy); background:var(--card); border-radius:6px; padding:10px 12px; font-weight:700; font-size:13px; cursor:pointer; user-select:none; touch-action:manipulation; min-height:44px; }
   .chip:active { background:var(--navy); color:#fff; }
+  .chip .chipdel{ margin-left:4px; color:var(--red); font-weight:900; padding:2px 5px; }
+  .exphoto{ width:150px; max-width:45%; border-radius:8px; flex-shrink:0; background:#EDE7DA; }
   .chip.on { background:var(--navy); color:#fff; }
   .rings { display:flex; justify-content:space-around; flex-wrap:wrap; gap:10px; }
   .bars { display:flex; align-items:flex-end; gap:5px; height:110px; margin-top:8px; padding-bottom:20px; }
@@ -91,7 +93,6 @@
 </style>
 </head>
 <body>
-<div class="offline-banner" id="offlineBanner">Offline — logging locally, will sync when back online</div>
 <header>
   <div><h1>Fight Camp</h1><span class="round" id="roundLbl">PRE-CAMP RAMP</span></div>
   <div class="count"><b id="countdown">30</b><span id="cdLbl">DAYS · AUG 9</span><div class="fightbar"><div id="cdBar" style="width:6.25%"></div></div></div>
@@ -141,41 +142,81 @@ const FOODS = [
  {n:"NKED weight gainer (CHECK LABEL)",k:600,p:30},
 ];
 
-const PROXY="http://127.0.0.1:5555";
-const SYNC=()=>localStorage.getItem("fightcamp-sync")==="1"; // Mac-proxy sync stays OFF until the proxy server actually exists
+const GH=()=>({tok:localStorage.getItem("fc-gh-token"),gid:localStorage.getItem("fc-gist-id")});
+const SYNC=()=>{const g=GH();return !!(g.tok&&g.gid);};
 const DEFAULTS={ done:{}, meals:{}, weekly:[], rounds:[], customFoods:[],
   notifTimes:{ morning:"09:00", boxing:"15:30", postbox:"17:05", gym:"18:30", sleep:"21:15" },
-  notifsOn:false };
+  notifsOn:false, hiddenFoods:[] };
 let D=null;
 try{ D=JSON.parse(localStorage.getItem(LS)||"null"); }catch(e){ D=null; } // corrupt data can't blank the app anymore
 D=Object.assign({},DEFAULTS,(D&&typeof D==="object")?D:{});
 D.notifTimes=Object.assign({},DEFAULTS.notifTimes,D.notifTimes||{});
-["weekly","rounds","customFoods"].forEach(k=>{ if(!Array.isArray(D[k]))D[k]=[]; });
+["weekly","rounds","customFoods","hiddenFoods"].forEach(k=>{ if(!Array.isArray(D[k]))D[k]=[]; });
 ["done","meals"].forEach(k=>{ if(!D[k]||typeof D[k]!=="object")D[k]={}; });
 
-// ============== OFFLINE-AWARE SAVE ==============
-function setPending(v){ v?localStorage.setItem(LS_PENDING,"1"):localStorage.removeItem(LS_PENDING); updateOfflineBanner(); }
-function updateOfflineBanner(){
-  const b=document.getElementById("offlineBanner");
-  if(!b)return;
-  const pending=!!localStorage.getItem(LS_PENDING);
-  b.classList.toggle("show", SYNC() && (pending || !navigator.onLine));
-  b.textContent = !navigator.onLine ? "Offline — logging locally, will sync when back online" : (pending ? "Reconnected — syncing…" : "");
+// ============== CLOUD SYNC (GitHub Gist) ==============
+async function ghApi(path,method,body){
+  const {tok}=GH();
+  const r=await fetch("https://api.github.com"+path,{method:method||"GET",
+    headers:{Authorization:"Bearer "+tok,Accept:"application/vnd.github+json"},
+    body:body?JSON.stringify(body):undefined});
+  if(!r.ok)throw new Error("GitHub error "+r.status+(r.status===401?" — token invalid or expired":""));
+  return r.json();
+}
+async function cloudPull(){
+  const j=await ghApi("/gists/"+GH().gid);
+  const f=j.files&&j.files["fightcamp.json"];
+  if(!f)return null;
+  let txt=f.content;
+  if(f.truncated) txt=await (await fetch(f.raw_url)).text();
+  return JSON.parse(txt);
+}
+async function cloudPush(){
+  await ghApi("/gists/"+GH().gid,"PATCH",{files:{"fightcamp.json":{content:JSON.stringify(D)}}});
+}
+function setSyncStatus(t){const el=document.getElementById("syncMsg");if(el)el.textContent=t;}
+let pushTimer=null;
+function queuePush(){
+  if(!SYNC())return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(()=>cloudPush()
+    .then(()=>setSyncStatus("Auto-synced ✓ "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})))
+    .catch(e=>setSyncStatus("✗ "+e.message)),1500);
+}
+async function connectSync(){
+  const tok=(document.getElementById("ghTok").value||"").trim();
+  if(!tok)return alert("Paste your GitHub token first");
+  localStorage.setItem("fc-gh-token",tok);
+  try{
+    const list=await ghApi("/gists");
+    let g=list.find(x=>x.description==="fight-camp-data");
+    if(!g) g=await ghApi("/gists","POST",{description:"fight-camp-data",public:false,files:{"fightcamp.json":{content:JSON.stringify(D)}}});
+    localStorage.setItem("fc-gist-id",g.id);
+    renderCheckin();
+    await forceSync();
+  }catch(e){ localStorage.removeItem("fc-gh-token"); setSyncStatus("✗ "+e.message); alert("Couldn't connect: "+e.message); }
+}
+function disconnectSync(){ if(!confirm("Disconnect sync on this device? (Cloud data stays safe)"))return; localStorage.removeItem("fc-gh-token"); localStorage.removeItem("fc-gist-id"); renderCheckin(); }
+async function forceSync(){
+  if(!SYNC()){ setSyncStatus("Not connected — paste your token above and hit Connect."); return; }
+  setSyncStatus("Syncing…");
+  try{
+    const remote=await cloudPull();
+    if(remote&&remote._saved&&(!D._saved||remote._saved>D._saved)){
+      D=remote; localStorage.setItem(LS,JSON.stringify(D)); render();
+      setSyncStatus("Pulled newer data from cloud ✓");
+    }else{
+      await cloudPush(); setSyncStatus("Pushed this device's data to cloud ✓");
+    }
+  }catch(e){ setSyncStatus("✗ "+e.message); }
 }
 const save=()=>{
   D._saved=Date.now();
   localStorage.setItem(LS,JSON.stringify(D));
-  if(!SYNC()){ setPending(false); return; } // no proxy = local-only, never show a stuck sync banner
-  if(!navigator.onLine){ setPending(true); return; }
-  fetch(PROXY+"/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(D)})
-    .then(r=>{ if(r.ok) setPending(false); else setPending(true); })
-    .catch(()=>setPending(true));
+  queuePush();
 };
-window.addEventListener("online",()=>{ updateOfflineBanner(); if(localStorage.getItem(LS_PENDING)) save(); });
-window.addEventListener("offline",updateOfflineBanner);
-setInterval(()=>{ if(SYNC() && localStorage.getItem(LS_PENDING) && navigator.onLine) save(); },20000);
 let __day=null;
-setInterval(()=>{ if(__day && today()!==__day && typeof render==="function") render(); __day=today(); },30000); // refresh when the date rolls over
+setInterval(()=>{ if(__day && today()!==__day && typeof render==="function") render(); __day=today(); },30000);
 
 const fmtDate=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const today=()=>fmtDate(new Date()); // LOCAL time — v8 used UTC, which logged evening entries on tomorrow's date
@@ -424,6 +465,14 @@ function exSVG(pat){
     ${fr(f.A,"fA")}${fr(f.B,"fB")}</svg>`;
 }
 
+// Public-domain exercise photos (free-exercise-db)
+const EXBASE="https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
+const EXIMG={"Leg press":"Leg_Press/0.jpg","Leg press explosive":"Leg_Press/0.jpg","Seated leg curl":"Seated_Leg_Curl/0.jpg","Leg extension":"Leg_Extensions/0.jpg","Calf raise machine":"Standing_Calf_Raises/0.jpg","Single-leg calf raises":"Standing_Calf_Raises/0.jpg","Box jumps":"Front_Box_Jump/0.jpg","Broad jumps":"Front_Box_Jump/0.jpg","Jump squats":"Freehand_Jump_Squat/0.jpg","Split squats":"Split_Squats/0.jpg","Glute bridges":"Butt_Lift_Bridge/0.jpg","Chest press machine":"Machine_Bench_Press/0.jpg","Lat pulldown":"Wide-Grip_Lat_Pulldown/0.jpg","Seated cable row":"Seated_Cable_Rows/0.jpg","Shoulder press machine":"Leverage_Shoulder_Press/0.jpg","Assisted pull-ups":"Band_Assisted_Pull-Up/0.jpg","Assisted dips":"Dip_Machine/0.jpg","Chair dips":"Bench_Dips/0.jpg","Cable chops hi→lo":"Standing_Cable_Wood_Chop/0.jpg","Cable chop power":"Standing_Cable_Wood_Chop/0.jpg","Cable woodchop core":"Standing_Cable_Wood_Chop/0.jpg","Cable external rotation":"External_Rotation_with_Cable/0.jpg","Push-ups":"Pushups/0.jpg","Explosive push-ups":"Plyo_Push-up/0.jpg","Towel rows (door anchor)":"Inverted_Row/0.jpg","Plank":"Plank/0.jpg","Plank shoulder taps":"Plank/0.jpg","Side plank":"Side_Bridge/0.jpg","Sit-ups":"Sit-Up/0.jpg","Leg raises":"Flat_Bench_Lying_Leg_Raise/0.jpg","Russian twists":"Russian_Twist/0.jpg","Hanging knee raises":"Hanging_Leg_Raise/0.jpg","Back extension machine":"Reverse_Hyperextension/0.jpg","Mountain climbers":"Mountain_Climbers/0.jpg","Jump rope easy":"Rope_Jumping/0.jpg","Jump rope intervals":"Rope_Jumping/0.jpg","Jump rope rounds":"Rope_Jumping/0.jpg","Rowing intervals":"Rowing_Stationary/0.jpg","Bike or row easy":"Bicycling_Stationary/0.jpg","Easy bike/walk":"Bicycling_Stationary/0.jpg","Treadmill Zone 2":"Jogging_Treadmill/0.jpg","Incline treadmill sprints":"Running_Treadmill/0.jpg","Med ball slams":"Overhead_Slam/0.jpg","Neck 4-way isometric":"Isometric_Neck_Exercise_-_Sides/0.jpg"};
+function exImg(n){
+  const u=EXIMG[n];
+  if(u)return `<img class="exphoto" loading="lazy" src="${EXBASE+u}" alt="${n}" onerror="this.style.display='none'">`;
+  return `<a class="btn ghost sm" style="align-self:center;flex-shrink:0;text-decoration:none" target="_blank" href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(n+' exercise proper form')}">📷 See photos</a>`;
+}
 // ================= WORKOUT GENERATOR =================
 let WO = { loc:"gym", tod:"PM", mins:45 };
 let LASTWO = null;
@@ -614,7 +663,7 @@ function renderWorkout(regen){
       h+=`<div class="wo-ex" id="${id}">
         <div class="exhead" onclick="toggleEx('${id}')"><span><b>${it.n}</b><br><span class="muted">${it.d}</span></span><span class="caret">▶</span></div>
         <div class="exdrop"><div class="exdrop-inner">
-          <a class="btn ghost sm" style="align-self:center;flex-shrink:0;text-decoration:none" target="_blank" href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(it.n+' exercise proper form')}">📷 See photos</a>
+          ${exImg(it.n)}
           <div class="excues">${(it.c||["Move with control","Full range of motion","Breathe"]).map(c=>"• "+c).join("<br>")}
           <div class="mst">✕ ${it.x||"Rushing reps with bad form."}</div></div>
         </div></div>
@@ -626,12 +675,21 @@ function renderWorkout(regen){
   el.innerHTML=h;
 }
 
+function visibleFoods(){return [...FOODS.filter(x=>!(D.hiddenFoods||[]).includes(x.n)),...D.customFoods];}
+function delShortcut(i){
+  const fd=visibleFoods()[i];if(!fd)return;
+  if(!confirm('Remove "'+fd.n+'" from quick add?'))return;
+  const ci=D.customFoods.findIndex(x=>x.n===fd.n);
+  if(ci>=0)D.customFoods.splice(ci,1);
+  else{D.hiddenFoods=D.hiddenFoods||[];D.hiddenFoods.push(fd.n);}
+  save();renderFood();
+}
 function renderFood(){
   const meals=D.meals[today()]||[];
-  const all=[...FOODS,...D.customFoods];
+  const all=visibleFoods();
   let f="";
   f+=`<div class="card"><div class="label">QUICK ADD — TAP A FOOD</div><div class="chips">`;
-  all.forEach((fd,i)=>f+=`<div class="chip" onclick="addFood(${i})">${fd.n}<br><span class="muted">${fd.k} kcal · ${fd.p}g P</span></div>`);
+  all.forEach((fd,i)=>f+=`<div class="chip" onclick="addFood(${i})">${fd.n} <span class="chipdel" onclick="event.stopPropagation();delShortcut(${i})">✕</span><br><span class="muted">${fd.k} kcal · ${fd.p}g P</span></div>`);
   f+=`</div></div>`;
   f+=`<div class="card"><div class="label">ADD CUSTOM FOOD (from the label)</div>
   <div class="grid2"><input type="text" id="cfN" placeholder="Name"><input type="number" id="cfK" placeholder="kcal">
@@ -784,28 +842,20 @@ function trendCard(){
   if(!t)t=`<div class="muted">Averages appear after a few check-ins. One bad night won't trigger alarms — trends will.</div>`;
   return t;
 }
-async function forceSync(){
-  const msg=document.getElementById("syncMsg");
-  if(!SYNC()){ msg.textContent="No sync server set up — data lives on this device only. Use Export CSV to back up."; return; }
-  msg.textContent="Force syncing…";
-  try{
-    const r=await fetch(PROXY+"/data");
-    const remote=r.ok?await r.json():{};
-    if(remote&&remote._saved&&(!D._saved||remote._saved>D._saved)){
-      D=remote;localStorage.setItem(LS,JSON.stringify(D));render();
-      document.getElementById("syncMsg").textContent="Pulled newer data from Mac ✓";
-    }else{
-      save();msg.textContent="Local was newest — pushed to Mac ✓";
-    }
-  }catch(e){msg.textContent="✗ Can't reach the Mac. Is it awake? Same WiFi? Proxy running?";}
-}
 function renderCheckin(){
   let c=`<div class="card"><div class="label">CHECK-IN (weight+RHR daily, full check-in Sundays)</div>
   <div class="grid2"><input type="number" id="ciW" placeholder="Weight (lb)"><input type="number" id="ciR" placeholder="Resting HR">
   <input type="number" id="ciS" placeholder="Sleep hrs" step="0.5"><input type="number" id="ciRd" placeholder="Readiness 1-10">
   <input type="number" id="ciH" placeholder="HRV (ms)"><input type="number" id="ciRR" placeholder="Resp rate" step="0.5"></div>
-  <button class="btn" style="margin-top:10px" onclick="addCheckin()">Save</button>
-  <div id="syncMsg" class="muted" style="margin-top:6px"></div></div>
+  <button class="btn" style="margin-top:10px" onclick="addCheckin()">Save</button></div>
+  <div class="card"><div class="label">CLOUD SYNC — PHONE ↔ COMPUTER (free, your GitHub)</div>${SYNC()?`
+    <div class="muted">Connected ✓ — auto-syncs 1.5s after every log. Set up the same token on your other device and both share this data.</div>
+    <button class="btn" style="margin-top:10px" onclick="forceSync()">🔄 Force Sync</button>
+    <button class="btn ghost sm" style="margin-top:10px" onclick="disconnectSync()">Disconnect</button>`:`
+    <div class="muted" style="margin-bottom:8px">One-time setup (2 min): on github.com go to Settings → Developer settings → Personal access tokens → <b>Tokens (classic)</b> → Generate new token (classic). Name it "fight-camp", expiration 90 days, tick ONLY the <b>gist</b> box. Generate, copy, paste below. Repeat the paste on your phone.</div>
+    <input type="password" id="ghTok" placeholder="Paste GitHub token (ghp_…)">
+    <button class="btn" style="margin-top:10px" onclick="connectSync()">Connect</button>`}
+  <div id="syncMsg" class="muted" style="margin-top:8px"></div></div>
   <div class="card"><div class="label">RECOVERY TRENDS (7-day rolling)</div>${trendCard()}</div>
   <div class="card"><div class="label">WEIGHT TREND</div>${weightChart()}</div>
   <div class="card"><div class="label">HISTORY</div><table>`;
@@ -841,7 +891,7 @@ function renderNotifs(){
 function goTab(t){document.querySelector(`nav button[data-tab=${t}]`).click();}
 function toggle(id){const t=today();D.done[t]=D.done[t]||[];D.done[t]=D.done[t].includes(id)?D.done[t].filter(x=>x!==id):[...D.done[t],id];save();renderToday();}
 function addFood(i){
-  const all=[...FOODS,...D.customFoods];const fd=all[i];
+  const all=visibleFoods();const fd=all[i];
   const x=parseFloat(prompt(`How many servings of "${fd.n}"? (e.g. 6 for 6 nigiri, 1 for one serving)`,"1"));
   if(!x||x<=0)return;
   const t=today();D.meals[t]=D.meals[t]||[];
@@ -869,23 +919,6 @@ function addCheckin(){
   const g=i=>document.getElementById(i).value;
   if(!g("ciW")&&!g("ciR"))return;
   D.weekly.push({date:today(),weight:g("ciW"),rhr:g("ciR"),sleep:g("ciS"),ready:g("ciRd"),hrv:g("ciH"),rr:g("ciRR")});save();renderCheckin();renderToday();
-}
-async function syncWatch(){
-  const msg=document.getElementById("syncMsg");
-  if(!SYNC()){ msg.textContent="Watch sync needs the Mac proxy server, which isn't built yet. Enter numbers manually for now."; return; }
-  msg.textContent="Fetching from proxy…";
-  try{
-    const r=await fetch(PROXY+"/");
-    if(!r.ok)throw new Error("no data yet — run Manual Export in Health Auto Export first");
-    const d=await r.json();
-    const set=(id,v)=>{if(v!=null&&document.getElementById(id))document.getElementById(id).value=Math.round(v*10)/10;};
-    set("ciR",d.rhr);set("ciS",d.sleep_hrs);set("ciH",d.hrv);set("ciRR",d.rr);
-    let stale=d.date&&d.date!==today()?" ⚠️ DATA IS FROM "+d.date+", not today — resync in Health Auto Export":"";
-    let stages=(d.deep_min!=null)?` (Deep ${d.deep_min}m · REM ${d.rem_min}m · Core ${d.core_min}m)`:"";
-    msg.textContent="Synced ✓ ("+(d.timestamp||"").slice(0,16).replace("T"," ")+")"+stages+stale+" — check numbers, then hit Save";
-  }catch(e){
-    msg.textContent="✗ "+e.message+". Is the proxy running? (Terminal: python3 ~/health_proxy.py)";
-  }
 }
 function setNT(k,v){D.notifTimes[k]=v;save();}
 function exportCSV(){
@@ -1054,19 +1087,7 @@ if(isWidget){
     ["today","workout","food","plan","rounds","sleep","checkin"].forEach(t=>document.getElementById(t).style.display=t===b.dataset.tab?"block":"none");
   });
   render();
-  updateOfflineBanner();
-  (async()=>{
-    if(!SYNC())return;
-    try{
-      const r=await fetch(PROXY+"/data");
-      if(r.ok){
-        const remote=await r.json();
-        if(remote&&remote._saved&&(!D._saved||remote._saved>D._saved)){
-          D=remote;localStorage.setItem(LS,JSON.stringify(D));render();
-        }
-      }
-    }catch(e){}
-  })();
+  if(SYNC()) forceSync(); // automatic pull/push on every open
   if("serviceWorker" in navigator){
     navigator.serviceWorker.register("sw.js").catch(()=>{});
   }

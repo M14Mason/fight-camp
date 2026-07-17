@@ -146,13 +146,13 @@ const GH=()=>({tok:localStorage.getItem("fc-gh-token"),gid:localStorage.getItem(
 const SYNC=()=>{const g=GH();return !!(g.tok&&g.gid);};
 const DEFAULTS={ done:{}, meals:{}, weekly:[], rounds:[], customFoods:[],
   notifTimes:{ morning:"09:00", boxing:"15:30", postbox:"17:05", gym:"18:30", sleep:"21:15" },
-  notifsOn:false, hiddenFoods:[] };
+  notifsOn:false, hiddenFoods:[], coach:{} };
 let D=null;
 try{ D=JSON.parse(localStorage.getItem(LS)||"null"); }catch(e){ D=null; } // corrupt data can't blank the app anymore
 D=Object.assign({},DEFAULTS,(D&&typeof D==="object")?D:{});
 D.notifTimes=Object.assign({},DEFAULTS.notifTimes,D.notifTimes||{});
 ["weekly","rounds","customFoods","hiddenFoods"].forEach(k=>{ if(!Array.isArray(D[k]))D[k]=[]; });
-["done","meals"].forEach(k=>{ if(!D[k]||typeof D[k]!=="object")D[k]={}; });
+["done","meals","coach"].forEach(k=>{ if(!D[k]||typeof D[k]!=="object")D[k]={}; });
 
 // ============== CLOUD SYNC (GitHub Gist) ==============
 async function ghApi(path,method,body){
@@ -266,11 +266,17 @@ function weekDayOf(n){
 }
 function weekDay(){ return weekDayOf(new Date(today()+"T00:00:00")); }
 const daysToFight=()=>Math.max(0,Math.round((FIGHT-new Date(today()+"T00:00:00"))/864e5));
-function dayItemIds(dd){
+const CJ_START="2026-07-13"; // coach-workout scoring starts here; older days keep old ids so history/streaks are untouched
+function dayItemIds(dd,key){
   const ids=[];
   dd.m.forEach((_,i)=>ids.push("m"+i));
   if(dd.b) ids.push("box");
-  dd.g.forEach((_,i)=>ids.push("g"+i));
+  if(key&&key>=CJ_START){
+    const cj=(D.coach||{})[key];
+    if(cj&&cj.length)cj.forEach((_,i)=>ids.push("cj"+i)); else ids.push("cjdone");
+  }else{
+    dd.g.forEach((_,i)=>ids.push("g"+i));
+  }
   return ids;
 }
 
@@ -286,7 +292,7 @@ function streaks(){
     if(checkingP){ if(pro>=PRO_T) proteinStreak++; else checkingP=false; }
     const {week,dow}=weekDayOf(d);
     const dd=PLAN[week].days[dow];
-    const ids=dayItemIds(dd);
+    const ids=dayItemIds(dd,key);
     const done=D.done[key]||[];
     const allDone = ids.length===0 || ids.every(id=>done.includes(id));
     if(checkingC){ if(allDone) checklistStreak++; else checkingC=false; }
@@ -297,7 +303,7 @@ function streaks(){
   if(tPro>=PRO_T) proteinStreak++;
   const {week:tw,dow:td}=weekDay();
   const tdd=PLAN[tw].days[td];
-  const tids=dayItemIds(tdd);
+  const tids=dayItemIds(tdd,today());
   const tdone=D.done[today()]||[];
   if(tids.length===0 || tids.every(id=>tdone.includes(id))) checklistStreak++;
   return {proteinStreak, checklistStreak};
@@ -361,7 +367,17 @@ function renderToday(){
   day.m.forEach((t,i)=>h+=chk("m"+i,t));
   if(day.b){h+=`<div class="slot">4:00–5:00 PM · BOXING</div>`+chk("box","Boxing training / sparring 1hr");
     h+=`<div class="muted" style="padding:4px 0 0 30px">→ Eat by 5:15pm after boxing. That 4-7pm gap is where your calories fall short.</div>`;}
-  if(day.g.length){h+=`<div class="slot">7:00–8:00 PM · GYM (machines + bodyweight)</div>`;day.g.forEach((t,i)=>h+=chk("g"+i,t));}
+  h+=`<div class="slot">7:00–8:00 PM · COACH JOSH WORKOUT</div>`;
+  const cj=(D.coach||{})[today()];
+  if(cj&&cj.length){
+    cj.forEach((t,i)=>h+=chk("cj"+i,t));
+    h+=`<div style="padding:6px 0 0 30px"><button class="btn ghost sm" onclick="clearCoach()">Replace tonight's workout</button></div>`;
+  }else{
+    h+=chk("cjdone","Coach Josh's workout (1 hr) — done");
+    h+=`<div style="padding:8px 0 0 30px" id="cjBox">
+    <textarea id="cjPaste" placeholder="Coach texted the workout? Paste it here — one exercise per line" style="width:100%;min-height:70px;padding:10px;border:2px solid var(--navy);border-radius:6px;font-size:14px;font-family:inherit"></textarea>
+    <button class="btn sm" style="margin-top:8px" onclick="addCoach()">Turn into checklist</button></div>`;
+  }
   h+=`</div>`;
   const rAvg7=rolling("rhr"),lastCk=D.weekly[D.weekly.length-1]||{};
   if(rAvg7&&lastCk.rhr&&+lastCk.rhr>=rAvg7+5)
@@ -687,7 +703,11 @@ function delShortcut(i){
 function renderFood(){
   const meals=D.meals[today()]||[];
   const all=visibleFoods();
-  let f="";
+  let f=`<div class="card"><div class="label">SCAN A BARCODE (packaged food — free lookup)</div>
+  <button class="btn" onclick="startScan()">📷 Scan with Camera</button>
+  <label class="btn ghost" style="display:inline-block;margin-left:8px">From Photo<input type="file" accept="image/*" style="display:none" onchange="scanFromFile(this)"></label>
+  <div id="scanArea" style="margin-top:10px"></div>
+  <div id="scanResult"></div></div>`;
   f+=`<div class="card"><div class="label">QUICK ADD — TAP A FOOD</div><div class="chips">`;
   all.forEach((fd,i)=>f+=`<div class="chip" onclick="addFood(${i})">${fd.n} <span class="chipdel" onclick="event.stopPropagation();delShortcut(${i})">✕</span><br><span class="muted">${fd.k} kcal · ${fd.p}g P</span></div>`);
   f+=`</div></div>`;
@@ -888,6 +908,19 @@ function renderNotifs(){
 }
 
 // ================= ACTIONS =================
+function addCoach(){
+  const t=(document.getElementById("cjPaste").value||"").split("\n").map(x=>x.replace(/^[\s\-•*\d.)]+/,"").trim()).filter(x=>x.length>1);
+  if(!t.length)return alert("Paste the workout first — one exercise per line");
+  D.coach=D.coach||{};D.coach[today()]=t;
+  const dn=D.done[today()];if(dn)D.done[today()]=dn.filter(x=>x!=="cjdone");
+  save();renderToday();
+}
+function clearCoach(){
+  if(!confirm("Replace tonight's coach workout? (Its checkmarks reset)"))return;
+  delete D.coach[today()];
+  const dn=D.done[today()];if(dn)D.done[today()]=dn.filter(x=>!x.startsWith("cj"));
+  save();renderToday();
+}
 function goTab(t){document.querySelector(`nav button[data-tab=${t}]`).click();}
 function toggle(id){const t=today();D.done[t]=D.done[t]||[];D.done[t]=D.done[t].includes(id)?D.done[t].filter(x=>x!==id):[...D.done[t],id];save();renderToday();}
 function addFood(i){
@@ -931,43 +964,37 @@ function exportCSV(){
   a.download="fight-camp.csv";a.click();
 }
 
-// ================= BARCODE SCANNING =================
-let scanStream=null,scanTimer=null;
-function stopScan(){
-  if(scanTimer)clearInterval(scanTimer);
-  if(scanStream)scanStream.getTracks().forEach(t=>t.stop());
-  scanStream=null;scanTimer=null;
-  document.getElementById("scanArea").innerHTML="";
+// ================= BARCODE SCANNING (ZXing — works in Safari + installed app) =================
+let zxLoad=null,zxReader=null;
+function loadZX(){
+  if(window.ZXing)return Promise.resolve();
+  if(zxLoad)return zxLoad;
+  zxLoad=new Promise((ok,err)=>{const sc=document.createElement("script");
+    sc.src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js";
+    sc.onload=ok;sc.onerror=()=>{zxLoad=null;err(new Error("Couldn't load scanner — check internet"));};
+    document.head.appendChild(sc);});
+  return zxLoad;
 }
+function stopScan(){ try{if(zxReader)zxReader.reset();}catch(e){} zxReader=null; const a=document.getElementById("scanArea"); if(a)a.innerHTML=""; }
 async function startScan(){
-  if(!("BarcodeDetector" in window))return alert("Your browser doesn't support barcode scanning. Use Chrome, or use Upload Barcode Photo.");
   const area=document.getElementById("scanArea");
-  area.innerHTML=`<video id="scanVid" style="width:100%;max-width:380px;border:2px solid var(--navy)" autoplay playsinline></video><br><button class="btn ghost sm" onclick="stopScan()">Stop</button>`;
+  area.innerHTML=`<div class="muted">Loading scanner…</div>`;
   try{
-    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-    const vid=document.getElementById("scanVid");vid.srcObject=scanStream;
-    const det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
-    scanTimer=setInterval(async()=>{
-      try{
-        const codes=await det.detect(vid);
-        if(codes.length){stopScan();lookupBarcode(codes[0].rawValue);}
-      }catch(e){}
-    },400);
-  }catch(e){stopScan();alert("Camera blocked. Allow camera for this page, or use Upload Barcode Photo.");}
+    await loadZX();
+    area.innerHTML=`<video id="scanVid" style="width:100%;max-width:380px;border:2px solid var(--navy);border-radius:6px" autoplay playsinline muted></video><br><button class="btn ghost sm" style="margin-top:6px" onclick="stopScan()">Stop</button>`;
+    zxReader=new ZXing.BrowserMultiFormatReader();
+    await zxReader.decodeFromConstraints({video:{facingMode:"environment"}},document.getElementById("scanVid"),(res)=>{ if(res){stopScan();lookupBarcode(res.getText());} });
+  }catch(e){ stopScan(); alert("Camera blocked or unavailable ("+e.message+"). Use From Photo instead."); }
 }
 async function scanFromFile(inp){
   const file=inp.files[0];if(!file)return;inp.value="";
-  if(!("BarcodeDetector" in window))return alert("Use Chrome for barcode detection.");
-  const img=new Image();
-  img.onload=async()=>{
-    try{
-      const det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
-      const codes=await det.detect(img);
-      if(codes.length)lookupBarcode(codes[0].rawValue);
-      else document.getElementById("scanResult").innerHTML=`<div class="warn card" style="margin-top:8px">No barcode found in that photo. Get closer, better light, barcode flat.</div>`;
-    }catch(e){alert("Detection failed: "+e.message);}
-  };
-  img.src=URL.createObjectURL(file);
+  const res=document.getElementById("scanResult");
+  res.innerHTML=`<div class="muted" style="margin-top:8px">Reading barcode…</div>`;
+  try{
+    await loadZX();
+    const r=await new ZXing.BrowserMultiFormatReader().decodeFromImageUrl(URL.createObjectURL(file));
+    res.innerHTML="";lookupBarcode(r.getText());
+  }catch(e){ res.innerHTML=`<div class="warn card" style="margin-top:8px">No barcode found in that photo. Get closer, barcode flat, good light.</div>`; }
 }
 async function lookupBarcode(code){
   const res=document.getElementById("scanResult");
@@ -1000,35 +1027,6 @@ function saveScanned(n,k,p,logNow){
     D.meals[t].push({n,k,p,x:1,t:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})});
   }
   save();renderFood();renderToday();
-}
-function shrinkImage(file,max){
-  return new Promise((ok,err)=>{
-    const img=new Image();
-    img.onload=()=>{
-      const s=Math.min(1,max/Math.max(img.width,img.height));
-      const c=document.createElement("canvas");
-      c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
-      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
-      ok(c.toDataURL("image/jpeg",0.8).split(",")[1]);
-    };
-    img.onerror=()=>err(new Error("Couldn't read image"));
-    img.src=URL.createObjectURL(file);
-  });
-}
-async function photoScan(inp){
-  const file=inp.files[0];if(!file)return;inp.value="";
-  const res=document.getElementById("scanResult");
-  res.innerHTML=`<div class="muted" style="margin-top:8px">Analyzing photo with Claude… (a few seconds)</div>`;
-  try{
-    const b64=await shrinkImage(file,1024);
-    const r=await fetch(PROXY+"/scanfood",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({image:b64,media_type:"image/jpeg"})});
-    const j=await r.json();
-    if(j.error)throw new Error(j.error);
-    res.innerHTML=`<div class="card" style="border-left:6px solid var(--red);margin-top:8px">
-      <b>${j.name}</b><br>~${j.kcal} kcal · ~${j.protein_g}g protein <span class="muted">(${j.confidence} confidence — AI estimate, not label data)</span><br>
-      <button class="btn sm" style="margin-top:8px" onclick='saveScanned(${JSON.stringify(j.name)},${Math.round(j.kcal)},${Math.round(j.protein_g)},true)'>Log Now + Save to List</button>
-      <button class="btn ghost sm" style="margin-top:8px" onclick='saveScanned(${JSON.stringify(j.name)},${Math.round(j.kcal)},${Math.round(j.protein_g)},false)'>Save to List Only</button></div>`;
-  }catch(e){res.innerHTML=`<div class="warn card" style="margin-top:8px">✗ ${e.message}</div>`;}
 }
 
 // ================= NOTIFICATIONS =================

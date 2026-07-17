@@ -375,7 +375,7 @@ function renderToday(){
   }else{
     h+=chk("cjdone","Coach Josh's workout (1 hr) — done");
     h+=`<div style="padding:8px 0 0 30px" id="cjBox">
-    <textarea id="cjPaste" placeholder="Coach texted the workout? Paste it here — one exercise per line" style="width:100%;min-height:70px;padding:10px;border:2px solid var(--navy);border-radius:6px;font-size:14px;font-family:inherit"></textarea>
+    <textarea id="cjPaste" placeholder="Paste Coach Josh's message exactly as he sent it — I'll sort out sets and rounds" style="width:100%;min-height:70px;padding:10px;border:2px solid var(--navy);border-radius:6px;font-size:14px;font-family:inherit"></textarea>
     <button class="btn sm" style="margin-top:8px" onclick="addCoach()">Turn into checklist</button></div>`;
   }
   h+=`</div>`;
@@ -908,9 +908,27 @@ function renderNotifs(){
 }
 
 // ================= ACTIONS =================
+function parseCoach(raw){
+  const items=[];let prefix="";
+  for(let line of raw.split("\n")){
+    line=line.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,"").replace(/^[\s\-•*·>]+/,"").trim();
+    if(!line)continue;
+    // split multi-exercise lines: commas, "then", ";", " + "
+    for(let seg of line.split(/,|;| then | \+ /i)){
+      seg=seg.trim().replace(/^then\s+/i,"").replace(/[:.]$/,"");
+      if(seg.length<2)continue;
+      // standalone header like "3 sets", "4 rounds", "3 sets of" -> applies to following items
+      if(/^\d+\s*(sets?|rounds?)(\s+of)?$/i.test(seg)){ prefix=seg.toLowerCase(); continue; }
+      // standalone section label like "warm up" (no digits) ending the original line with ":"
+      if(!/\d/.test(seg)&&/:\s*$/.test(line)){ prefix=seg.toLowerCase(); continue; }
+      items.push(prefix?prefix+" · "+seg:seg);
+    }
+  }
+  return items;
+}
 function addCoach(){
-  const t=(document.getElementById("cjPaste").value||"").split("\n").map(x=>x.replace(/^[\s\-•*\d.)]+/,"").trim()).filter(x=>x.length>1);
-  if(!t.length)return alert("Paste the workout first — one exercise per line");
+  const t=parseCoach(document.getElementById("cjPaste").value||"");
+  if(!t.length)return alert("Paste the workout first");
   D.coach=D.coach||{};D.coach[today()]=t;
   const dn=D.done[today()];if(dn)D.done[today()]=dn.filter(x=>x!=="cjdone");
   save();renderToday();
